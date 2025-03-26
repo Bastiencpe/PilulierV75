@@ -1,0 +1,22 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_info"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="Info" />
+    <item
+        android:id="@+id/nav_calendar"
+        android:icon="@android:drawable/ic_menu_today"
+        android:title="Calendrier" />
+    <item
+        android:id="@+id/nav_pill"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="Pilules" />
+    <item
+        android:id="@+id/nav_fire"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="Flamme" />
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@android:drawable/ic_menu_myplaces"
+        android:title="Profil" />
+</menu>
