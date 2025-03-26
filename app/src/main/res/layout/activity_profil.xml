@@ -8,16 +8,117 @@
     android:padding="16dp"
     tools:context=".ProfilActivity">
 
+    <!-- Bouton retour -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Retour"
+        android:src="@android:drawable/ic_menu_revert"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Titre -->
     <TextView
         android:id="@+id/profilTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Bienvenue sur votre Profil"
+        android:text="Profil Utilisateur"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBack"
+        app:layout_constraintBottom_toBottomOf="@id/btnBack"
+        android:layout_marginStart="16dp" />
+
+    <!-- Placeholder Photo de Profil -->
+    <ImageView
+        android:id="@+id/imageProfil"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:src="@drawable/profil1"
+        android:scaleType="centerCrop"
+        android:layout_marginTop="32dp"
+        android:background="@null"
+        android:contentDescription="Photo de profil"
+        app:layout_constraintTop_toBottomOf="@id/profilTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:padding="8dp"
+        android:clipToOutline="true"
+        android:elevation="4dp"/>
+
+    <!-- Nom -->
+    <EditText
+        android:id="@+id/etNom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Nom"
+        android:inputType="textPersonName"
+        app:layout_constraintTop_toBottomOf="@id/imageProfil"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <!-- Prénom -->
+    <EditText
+        android:id="@+id/etPrenom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Prénom"
+        android:inputType="textPersonName"
+        app:layout_constraintTop_toBottomOf="@id/etNom"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp" />
+
+    <!-- Contact d'urgence -->
+    <EditText
+        android:id="@+id/etUrgence"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Contact d'urgence"
+        android:inputType="phone"
+        app:layout_constraintTop_toBottomOf="@id/etPrenom"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp" />
+
+    <!-- Ordonnances -->
+    <EditText
+        android:id="@+id/etOrdonnances"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Ordonnances"
+        android:inputType="text"
+        app:layout_constraintTop_toBottomOf="@id/etUrgence"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp" />
+
+    <!-- Données -->
+    <EditText
+        android:id="@+id/etDonnees"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Données personnelles"
+        android:inputType="text"
+        app:layout_constraintTop_toBottomOf="@id/etOrdonnances"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp" />
+
+    <!-- Préférences horaires -->
+    <EditText
+        android:id="@+id/etPreferences"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Préférences horaires"
+        android:inputType="text"
+        app:layout_constraintTop_toBottomOf="@id/etDonnees"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

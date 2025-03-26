@@ -25,6 +25,8 @@
         <!--  Nouvelle activité ajoutée ici -->
         <activity android:name=".CalendrierActivity" />
         <activity android:name=".ProfilActivity" />
+        <activity android:name=".InfoActivity" />
+
 
 
     </application>
