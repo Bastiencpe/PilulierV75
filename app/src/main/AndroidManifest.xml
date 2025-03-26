@@ -22,8 +22,10 @@
             </intent-filter>
         </activity>
 
-        <!-- ✅ Nouvelle activité ajoutée ici -->
+        <!--  Nouvelle activité ajoutée ici -->
         <activity android:name=".CalendrierActivity" />
+        <activity android:name=".ProfilActivity" />
+
 
     </application>
 
