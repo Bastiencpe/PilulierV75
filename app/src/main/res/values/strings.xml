@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Pilulier</string>
     <string name="press_me">Press Me</string>
+    <string name="matin_label">MATIN :</string>
+    <string name="midi_label">MIDI :</string>
+    <string name="soir_label">SOIR :</string>
+    <string name="medicament_label">Médicament</string>
 </resources>
