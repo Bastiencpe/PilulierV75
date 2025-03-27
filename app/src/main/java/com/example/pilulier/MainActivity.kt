@@ -6,6 +6,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.widget.TextView
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,6 +21,11 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        // === Ajout de l'affichage de la date ===
+        val dateTextView: TextView = findViewById(R.id.date_text)
+        val dateFormat = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE)
+        val currentDate: String = dateFormat.format(Date())
+        dateTextView.text = currentDate
 
         // Navigation via le menu du bas
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
