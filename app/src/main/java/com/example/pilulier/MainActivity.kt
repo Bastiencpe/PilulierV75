@@ -3,6 +3,7 @@ package com.example.pilulier
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.view.View
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -19,64 +20,72 @@ class MainActivity : AppCompatActivity() {
 
     private var compteurFlamme = 1
     private var flammeDéjàValidée = false
+
     private lateinit var bottomNav: BottomNavigationView
     private lateinit var prefs: SharedPreferences
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.FRANCE)
 
     private lateinit var progressBar: ProgressBar
     private lateinit var progressText: TextView
+    private lateinit var flameAnim: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Thème clair/sombre
+        // Thème utilisateur
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
-        if (isDarkMode) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        } else {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        }
+        AppCompatDelegate.setDefaultNightMode(
+            if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES
+            else AppCompatDelegate.MODE_NIGHT_NO
+        )
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Appliquer marges système
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Date affichée
+        // Afficher la date
         val dateTextView: TextView = findViewById(R.id.date_text)
-        val currentDate: String = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
+        val currentDate = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
         dateTextView.text = currentDate
 
-        // Initialiser la barre de progression
+        // Initialisation vues
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
+        flameAnim = findViewById(R.id.flame_animation)
 
-        // Containers médicaments
+        // Conteneurs
         val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        // Vérifier date
+        // Vérifie nouveau jour
         val todayKey = dateFormat.format(Date())
         val lastDate = prefs.getString("last_open_date", "")
         val isNewDay = todayKey != lastDate
 
-        // Exemple de données
+        // Médicaments de test
         val traitements = mapOf(
             "matin" to listOf("Anti-inflammatoire", "Fer"),
             "midi" to listOf("Doliprane"),
             "soir" to listOf("Advil")
         )
 
-        ajouterMedsDynamique(matinContainer, traitements["matin"] ?: emptyList(), isNewDay)
-        ajouterMedsDynamique(midiContainer, traitements["midi"] ?: emptyList(), isNewDay)
-        ajouterMedsDynamique(soirContainer, traitements["soir"] ?: emptyList(), isNewDay)
+        ajouterMedsDynamique(matinContainer, traitements["matin"] ?: emptyList())
+        ajouterMedsDynamique(midiContainer, traitements["midi"] ?: emptyList())
+        ajouterMedsDynamique(soirContainer, traitements["soir"] ?: emptyList())
 
-        prefs.edit().putString("last_open_date", todayKey).apply()
+        // Réinitialiser flamme si nouveau jour
+        if (isNewDay) {
+            flammeDéjàValidée = false
+            prefs.edit().putString("last_open_date", todayKey).apply()
+        }
 
+        // Navigation
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
 
@@ -99,15 +108,18 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
+
+        // Calculer progression initiale
+        mettreAJourProgression()
     }
 
-    private fun ajouterMedsDynamique(container: LinearLayout, medicaments: List<String>, decocher: Boolean) {
+    private fun ajouterMedsDynamique(container: LinearLayout, medicaments: List<String>) {
         container.removeAllViews()
         for (med in medicaments) {
             val checkBox = CheckBox(this)
             checkBox.text = med
             checkBox.textSize = 16f
-            checkBox.isChecked = false // !decocher
+            checkBox.isChecked = false  // Toujours décoché au lancement
 
             checkBox.setOnCheckedChangeListener { _, _ ->
                 verifierToutesLesCasesCochees()
@@ -119,19 +131,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun verifierToutesLesCasesCochees() {
-        val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
-        val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
-        val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
+        val matin = findViewById<LinearLayout>(R.id.matin_container)
+        val midi = findViewById<LinearLayout>(R.id.midi_container)
+        val soir = findViewById<LinearLayout>(R.id.soir_container)
 
-        val toutesLesCases = mutableListOf<CheckBox>()
-        for (container in listOf(matinContainer, midiContainer, soirContainer)) {
-            for (i in 0 until container.childCount) {
-                val view = container.getChildAt(i)
-                if (view is CheckBox) {
-                    toutesLesCases.add(view)
+        val toutesLesCases = listOf(matin, midi, soir)
+            .flatMap { container ->
+                (0 until container.childCount).mapNotNull {
+                    container.getChildAt(it) as? CheckBox
                 }
             }
-        }
 
         val toutesCochees = toutesLesCases.all { it.isChecked }
 
@@ -139,6 +148,7 @@ class MainActivity : AppCompatActivity() {
             compteurFlamme++
             bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
             flammeDéjàValidée = true
+            lancerAnimationFlamme()
         }
 
         if (!toutesCochees) {
@@ -147,29 +157,50 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun mettreAJourProgression() {
-        val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
-        val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
-        val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
+        val matin = findViewById<LinearLayout>(R.id.matin_container)
+        val midi = findViewById<LinearLayout>(R.id.midi_container)
+        val soir = findViewById<LinearLayout>(R.id.soir_container)
 
-        var total = 0
-        var cochées = 0
-
-        for (container in listOf(matinContainer, midiContainer, soirContainer)) {
-            for (i in 0 until container.childCount) {
-                val view = container.getChildAt(i)
-                if (view is CheckBox) {
-                    total++
-                    if (view.isChecked) cochées++
+        val toutesLesCases = listOf(matin, midi, soir)
+            .flatMap { container ->
+                (0 until container.childCount).mapNotNull {
+                    container.getChildAt(it) as? CheckBox
                 }
             }
-        }
 
-        val pourcentage = if (total > 0) (cochées * 100 / total) else 0
+        val total = toutesLesCases.size
+        val cochees = toutesLesCases.count { it.isChecked }
+        val pourcentage = if (total > 0) cochees * 100 / total else 0
+
         progressBar.progress = pourcentage
-
         progressText.text = if (pourcentage == 100)
-            "🎉 $cochées/$total médicaments pris !"
+            "🎉 $cochees/$total médicaments pris !"
         else
-            "$cochées/$total médicaments pris"
+            "$cochees/$total médicaments pris"
+    }
+
+    private fun lancerAnimationFlamme() {
+        flameAnim.alpha = 0f
+        flameAnim.scaleX = 0.5f
+        flameAnim.scaleY = 0.5f
+        flameAnim.visibility = View.VISIBLE
+
+        flameAnim.animate()
+            .alpha(1f)
+            .scaleX(1.5f)
+            .scaleY(1.5f)
+            .setDuration(400)
+            .withEndAction {
+                flameAnim.animate()
+                    .alpha(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(400)
+                    .withEndAction {
+                        flameAnim.visibility = View.INVISIBLE
+                    }
+                    .start()
+            }
+            .start()
     }
 }
