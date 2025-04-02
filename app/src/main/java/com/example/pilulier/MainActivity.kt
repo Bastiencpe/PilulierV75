@@ -2,6 +2,7 @@ package com.example.pilulier
 
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
@@ -30,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var flameAnim: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Appliquer le thème sauvegardé
+        // Appliquer thème
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
@@ -76,7 +77,6 @@ class MainActivity : AppCompatActivity() {
         if (isNewDay) {
             flammeDéjàValidée = false
             prefs.edit().putString("last_open_date", todayKey).apply()
-            // Pour réinitialiser les états cochés mettre : prefs.edit().clear().apply()
         }
 
         restaurerEtatCheckboxes()
@@ -135,7 +135,6 @@ class MainActivity : AppCompatActivity() {
             findViewById<LinearLayout>(R.id.midi_container),
             findViewById<LinearLayout>(R.id.soir_container)
         )
-
         return containers.flatMap { container ->
             (0 until container.childCount).mapNotNull {
                 container.getChildAt(it) as? CheckBox
@@ -169,6 +168,7 @@ class MainActivity : AppCompatActivity() {
             bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
             flammeDéjàValidée = true
             lancerAnimationFlamme()
+            jouerSonReussite() // 🔊 Ajout ici
         }
 
         if (!toutesCochees) {
@@ -215,5 +215,13 @@ class MainActivity : AppCompatActivity() {
                     .start()
             }
             .start()
+    }
+
+    private fun jouerSonReussite() {
+        val mediaPlayer = MediaPlayer.create(this, R.raw.success)
+        mediaPlayer.start()
+        mediaPlayer.setOnCompletionListener {
+            it.release()
+        }
     }
 }

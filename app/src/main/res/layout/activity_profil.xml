@@ -136,4 +136,15 @@
         android:layout_marginTop="24dp"
         app:layout_constraintTop_toBottomOf="@id/etDonnees"
         app:layout_constraintStart_toStartOf="parent" />
+
+
+    <Button
+        android:id="@+id/btnHistorique"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Voir l'historique"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@id/themeSwitch"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
