@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--  Permission pour lire les images -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -26,6 +29,8 @@
         <activity android:name=".CalendrierActivity" />
         <activity android:name=".ProfilActivity" />
         <activity android:name=".InfoActivity" />
+        <activity android:name=".HistoriqueActivity" />
+
 
 
 

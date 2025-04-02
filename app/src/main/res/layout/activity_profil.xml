@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
@@ -27,12 +28,12 @@
         android:text="Profil Utilisateur"
         android:textSize="24sp"
         android:textStyle="bold"
+        android:layout_marginStart="16dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@id/btnBack"
-        app:layout_constraintBottom_toBottomOf="@id/btnBack"
-        android:layout_marginStart="16dp" />
+        app:layout_constraintBottom_toBottomOf="@id/btnBack" />
 
-    <!-- Placeholder Photo de Profil -->
+    <!-- Image de profil -->
     <ImageView
         android:id="@+id/imageProfil"
         android:layout_width="100dp"
@@ -42,12 +43,12 @@
         android:layout_marginTop="32dp"
         android:background="@null"
         android:contentDescription="Photo de profil"
-        app:layout_constraintTop_toBottomOf="@id/profilTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         android:padding="8dp"
         android:clipToOutline="true"
-        android:elevation="4dp"/>
+        android:elevation="4dp"
+        app:layout_constraintTop_toBottomOf="@id/profilTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Nom -->
     <EditText
@@ -56,10 +57,10 @@
         android:layout_height="wrap_content"
         android:hint="Nom"
         android:inputType="textPersonName"
+        android:layout_marginTop="24dp"
         app:layout_constraintTop_toBottomOf="@id/imageProfil"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Prénom -->
     <EditText
@@ -68,10 +69,10 @@
         android:layout_height="wrap_content"
         android:hint="Prénom"
         android:inputType="textPersonName"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@id/etNom"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Contact d'urgence -->
     <EditText
@@ -80,48 +81,52 @@
         android:layout_height="wrap_content"
         android:hint="Contact d'urgence"
         android:inputType="phone"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@id/etPrenom"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Ordonnances -->
-    <EditText
-        android:id="@+id/etOrdonnances"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="Ordonnances"
-        android:inputType="text"
-        app:layout_constraintTop_toBottomOf="@id/etUrgence"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp" />
-
-    <!-- Données -->
+    <!-- Données personnelles -->
     <EditText
         android:id="@+id/etDonnees"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Données personnelles"
         android:inputType="text"
-        app:layout_constraintTop_toBottomOf="@id/etOrdonnances"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/etUrgence"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Préférences horaires -->
+    <!-- Ordonnances (désactivé) -->
+    <!--
+    <EditText
+        android:id="@+id/etOrdonnances"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Ordonnances"
+        android:inputType="text"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/etDonnees"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+    -->
+
+    <!-- Préférences horaires (désactivé) -->
+    <!--
     <EditText
         android:id="@+id/etPreferences"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="Préférences horaires"
         android:inputType="text"
-        app:layout_constraintTop_toBottomOf="@id/etDonnees"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/etOrdonnances"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="12dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
+    -->
 
-    <!-- Mode sombre/clair -->
+    <!-- Switch thème sombre -->
     <Switch
         android:id="@+id/themeSwitch"
         android:layout_width="wrap_content"
@@ -129,8 +134,6 @@
         android:text="Activer le thème sombre"
         android:textSize="16sp"
         android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/etPreferences"
+        app:layout_constraintTop_toBottomOf="@id/etDonnees"
         app:layout_constraintStart_toStartOf="parent" />
-
-
 </androidx.constraintlayout.widget.ConstraintLayout>

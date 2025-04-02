@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var flameAnim: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Thème clair/sombre
+        // Appliquer le thème sauvegardé
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
@@ -41,19 +41,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Insets système
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Date
         val dateTextView: TextView = findViewById(R.id.date_text)
         val currentDate = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
         dateTextView.text = currentDate
 
-        // Vues
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
@@ -62,7 +59,6 @@ class MainActivity : AppCompatActivity() {
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        // Vérifie si nouveau jour
         val todayKey = dateFormat.format(Date())
         val lastDate = prefs.getString("last_open_date", "")
         val isNewDay = todayKey != lastDate
@@ -80,7 +76,10 @@ class MainActivity : AppCompatActivity() {
         if (isNewDay) {
             flammeDéjàValidée = false
             prefs.edit().putString("last_open_date", todayKey).apply()
+            // Pour réinitialiser les états cochés mettre : prefs.edit().clear().apply()
         }
+
+        restaurerEtatCheckboxes()
 
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
@@ -108,6 +107,11 @@ class MainActivity : AppCompatActivity() {
         mettreAJourProgression()
     }
 
+    override fun onPause() {
+        super.onPause()
+        sauvegarderEtatCheckboxes()
+    }
+
     private fun ajouterMedsDynamique(container: LinearLayout, medicaments: List<String>) {
         container.removeAllViews()
         for (med in medicaments) {
@@ -125,18 +129,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifierToutesLesCasesCochees() {
-        val matin = findViewById<LinearLayout>(R.id.matin_container)
-        val midi = findViewById<LinearLayout>(R.id.midi_container)
-        val soir = findViewById<LinearLayout>(R.id.soir_container)
+    private fun getToutesLesCheckboxes(): List<CheckBox> {
+        val containers = listOf(
+            findViewById<LinearLayout>(R.id.matin_container),
+            findViewById<LinearLayout>(R.id.midi_container),
+            findViewById<LinearLayout>(R.id.soir_container)
+        )
 
-        val toutesLesCases = listOf(matin, midi, soir)
-            .flatMap { container ->
-                (0 until container.childCount).mapNotNull {
-                    container.getChildAt(it) as? CheckBox
-                }
+        return containers.flatMap { container ->
+            (0 until container.childCount).mapNotNull {
+                container.getChildAt(it) as? CheckBox
             }
+        }
+    }
 
+    private fun sauvegarderEtatCheckboxes() {
+        val allCheckboxes = getToutesLesCheckboxes()
+        val editor = prefs.edit()
+        allCheckboxes.forEachIndexed { index, checkBox ->
+            editor.putBoolean("checkbox_$index", checkBox.isChecked)
+        }
+        editor.apply()
+    }
+
+    private fun restaurerEtatCheckboxes() {
+        val allCheckboxes = getToutesLesCheckboxes()
+        allCheckboxes.forEachIndexed { index, checkBox ->
+            val etat = prefs.getBoolean("checkbox_$index", false)
+            checkBox.isChecked = etat
+        }
+    }
+
+    private fun verifierToutesLesCasesCochees() {
+        val toutesLesCases = getToutesLesCheckboxes()
         val toutesCochees = toutesLesCases.all { it.isChecked }
 
         if (toutesCochees && !flammeDéjàValidée) {
@@ -152,17 +177,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun mettreAJourProgression() {
-        val matin = findViewById<LinearLayout>(R.id.matin_container)
-        val midi = findViewById<LinearLayout>(R.id.midi_container)
-        val soir = findViewById<LinearLayout>(R.id.soir_container)
-
-        val toutesLesCases = listOf(matin, midi, soir)
-            .flatMap { container ->
-                (0 until container.childCount).mapNotNull {
-                    container.getChildAt(it) as? CheckBox
-                }
-            }
-
+        val toutesLesCases = getToutesLesCheckboxes()
         val total = toutesLesCases.size
         val cochees = toutesLesCases.count { it.isChecked }
         val pourcentage = if (total > 0) cochees * 100 / total else 0
@@ -172,6 +187,9 @@ class MainActivity : AppCompatActivity() {
             "🎉 $cochees/$total médicaments pris !"
         else
             "$cochees/$total médicaments pris"
+
+        val dateKey = dateFormat.format(Date())
+        prefs.edit().putString("historique_$dateKey", "$cochees/$total").apply()
     }
 
     private fun lancerAnimationFlamme() {

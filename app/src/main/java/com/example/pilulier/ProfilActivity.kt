@@ -15,9 +15,9 @@ class ProfilActivity : AppCompatActivity() {
     private lateinit var nom: EditText
     private lateinit var prenom: EditText
     private lateinit var urgence: EditText
-    private lateinit var ordonnances: EditText
     private lateinit var donnees: EditText
-    private lateinit var preferences: EditText
+    // private lateinit var ordonnances: EditText
+    // private lateinit var preferences: EditText
     private lateinit var themeSwitch: Switch
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,22 +26,22 @@ class ProfilActivity : AppCompatActivity() {
 
         prefs = getSharedPreferences("profil_user", MODE_PRIVATE)
 
-        // Lier les vues
+        // Liaison des vues
         nom = findViewById(R.id.etNom)
         prenom = findViewById(R.id.etPrenom)
         urgence = findViewById(R.id.etUrgence)
-        ordonnances = findViewById(R.id.etOrdonnances)
         donnees = findViewById(R.id.etDonnees)
-        preferences = findViewById(R.id.etPreferences)
+        // ordonnances = findViewById(R.id.etOrdonnances)
+        // preferences = findViewById(R.id.etPreferences)
         themeSwitch = findViewById(R.id.themeSwitch)
 
-        // Remplir les champs avec les données enregistrées
+        // Chargement des données
         nom.setText(prefs.getString("nom", ""))
         prenom.setText(prefs.getString("prenom", ""))
         urgence.setText(prefs.getString("urgence", ""))
-        ordonnances.setText(prefs.getString("ordonnances", ""))
         donnees.setText(prefs.getString("donnees", ""))
-        preferences.setText(prefs.getString("preferences", ""))
+        // ordonnances.setText(prefs.getString("ordonnances", ""))
+        // preferences.setText(prefs.getString("preferences", ""))
 
         // Thème sombre
         val isDarkMode = prefs.getBoolean("dark_mode", false)
@@ -55,7 +55,6 @@ class ProfilActivity : AppCompatActivity() {
             )
         }
 
-        // Bouton retour
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
             finish()
         }
@@ -63,15 +62,13 @@ class ProfilActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-
-        // Sauvegarde automatique des champs
         prefs.edit().apply {
             putString("nom", nom.text.toString())
             putString("prenom", prenom.text.toString())
             putString("urgence", urgence.text.toString())
-            putString("ordonnances", ordonnances.text.toString())
             putString("donnees", donnees.text.toString())
-            putString("preferences", preferences.text.toString())
+            // putString("ordonnances", ordonnances.text.toString())
+            // putString("preferences", preferences.text.toString())
             apply()
         }
     }
