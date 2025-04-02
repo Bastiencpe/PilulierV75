@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var flameAnim: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Thème utilisateur
+        // Thème clair/sombre
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
@@ -41,34 +41,32 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Appliquer marges système
+        // Insets système
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Afficher la date
+        // Date
         val dateTextView: TextView = findViewById(R.id.date_text)
         val currentDate = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
         dateTextView.text = currentDate
 
-        // Initialisation vues
+        // Vues
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
 
-        // Conteneurs
         val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        // Vérifie nouveau jour
+        // Vérifie si nouveau jour
         val todayKey = dateFormat.format(Date())
         val lastDate = prefs.getString("last_open_date", "")
         val isNewDay = todayKey != lastDate
 
-        // Médicaments de test
         val traitements = mapOf(
             "matin" to listOf("Anti-inflammatoire", "Fer"),
             "midi" to listOf("Doliprane"),
@@ -79,13 +77,11 @@ class MainActivity : AppCompatActivity() {
         ajouterMedsDynamique(midiContainer, traitements["midi"] ?: emptyList())
         ajouterMedsDynamique(soirContainer, traitements["soir"] ?: emptyList())
 
-        // Réinitialiser flamme si nouveau jour
         if (isNewDay) {
             flammeDéjàValidée = false
             prefs.edit().putString("last_open_date", todayKey).apply()
         }
 
-        // Navigation
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
 
@@ -109,7 +105,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Calculer progression initiale
         mettreAJourProgression()
     }
 
@@ -119,7 +114,7 @@ class MainActivity : AppCompatActivity() {
             val checkBox = CheckBox(this)
             checkBox.text = med
             checkBox.textSize = 16f
-            checkBox.isChecked = false  // Toujours décoché au lancement
+            checkBox.isChecked = false
 
             checkBox.setOnCheckedChangeListener { _, _ ->
                 verifierToutesLesCasesCochees()
