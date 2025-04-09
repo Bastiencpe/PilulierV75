@@ -2,6 +2,7 @@ package com.example.pilulier
 
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.view.View
 import android.widget.CheckBox
@@ -30,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var flameAnim: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Thème utilisateur
+        // Appliquer thème
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
@@ -41,34 +42,28 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Appliquer marges système
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Afficher la date
         val dateTextView: TextView = findViewById(R.id.date_text)
         val currentDate = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
         dateTextView.text = currentDate
 
-        // Initialisation vues
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
 
-        // Conteneurs
         val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        // Vérifie nouveau jour
         val todayKey = dateFormat.format(Date())
         val lastDate = prefs.getString("last_open_date", "")
         val isNewDay = todayKey != lastDate
 
-        // Médicaments de test
         val traitements = mapOf(
             "matin" to listOf("Anti-inflammatoire", "Fer"),
             "midi" to listOf("Doliprane"),
@@ -79,13 +74,13 @@ class MainActivity : AppCompatActivity() {
         ajouterMedsDynamique(midiContainer, traitements["midi"] ?: emptyList())
         ajouterMedsDynamique(soirContainer, traitements["soir"] ?: emptyList())
 
-        // Réinitialiser flamme si nouveau jour
         if (isNewDay) {
             flammeDéjàValidée = false
             prefs.edit().putString("last_open_date", todayKey).apply()
         }
 
-        // Navigation
+        restaurerEtatCheckboxes()
+
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
 
@@ -109,8 +104,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Calculer progression initiale
         mettreAJourProgression()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sauvegarderEtatCheckboxes()
     }
 
     private fun ajouterMedsDynamique(container: LinearLayout, medicaments: List<String>) {
@@ -119,7 +118,7 @@ class MainActivity : AppCompatActivity() {
             val checkBox = CheckBox(this)
             checkBox.text = med
             checkBox.textSize = 16f
-            checkBox.isChecked = false  // Toujours décoché au lancement
+            checkBox.isChecked = false
 
             checkBox.setOnCheckedChangeListener { _, _ ->
                 verifierToutesLesCasesCochees()
@@ -130,18 +129,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun verifierToutesLesCasesCochees() {
-        val matin = findViewById<LinearLayout>(R.id.matin_container)
-        val midi = findViewById<LinearLayout>(R.id.midi_container)
-        val soir = findViewById<LinearLayout>(R.id.soir_container)
-
-        val toutesLesCases = listOf(matin, midi, soir)
-            .flatMap { container ->
-                (0 until container.childCount).mapNotNull {
-                    container.getChildAt(it) as? CheckBox
-                }
+    private fun getToutesLesCheckboxes(): List<CheckBox> {
+        val containers = listOf(
+            findViewById<LinearLayout>(R.id.matin_container),
+            findViewById<LinearLayout>(R.id.midi_container),
+            findViewById<LinearLayout>(R.id.soir_container)
+        )
+        return containers.flatMap { container ->
+            (0 until container.childCount).mapNotNull {
+                container.getChildAt(it) as? CheckBox
             }
+        }
+    }
 
+    private fun sauvegarderEtatCheckboxes() {
+        val allCheckboxes = getToutesLesCheckboxes()
+        val editor = prefs.edit()
+        allCheckboxes.forEachIndexed { index, checkBox ->
+            editor.putBoolean("checkbox_$index", checkBox.isChecked)
+        }
+        editor.apply()
+    }
+
+    private fun restaurerEtatCheckboxes() {
+        val allCheckboxes = getToutesLesCheckboxes()
+        allCheckboxes.forEachIndexed { index, checkBox ->
+            val etat = prefs.getBoolean("checkbox_$index", false)
+            checkBox.isChecked = etat
+        }
+    }
+
+    private fun verifierToutesLesCasesCochees() {
+        val toutesLesCases = getToutesLesCheckboxes()
         val toutesCochees = toutesLesCases.all { it.isChecked }
 
         if (toutesCochees && !flammeDéjàValidée) {
@@ -149,6 +168,7 @@ class MainActivity : AppCompatActivity() {
             bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
             flammeDéjàValidée = true
             lancerAnimationFlamme()
+            jouerSonReussite() // 🔊 Ajout ici
         }
 
         if (!toutesCochees) {
@@ -157,17 +177,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun mettreAJourProgression() {
-        val matin = findViewById<LinearLayout>(R.id.matin_container)
-        val midi = findViewById<LinearLayout>(R.id.midi_container)
-        val soir = findViewById<LinearLayout>(R.id.soir_container)
-
-        val toutesLesCases = listOf(matin, midi, soir)
-            .flatMap { container ->
-                (0 until container.childCount).mapNotNull {
-                    container.getChildAt(it) as? CheckBox
-                }
-            }
-
+        val toutesLesCases = getToutesLesCheckboxes()
         val total = toutesLesCases.size
         val cochees = toutesLesCases.count { it.isChecked }
         val pourcentage = if (total > 0) cochees * 100 / total else 0
@@ -177,6 +187,9 @@ class MainActivity : AppCompatActivity() {
             "🎉 $cochees/$total médicaments pris !"
         else
             "$cochees/$total médicaments pris"
+
+        val dateKey = dateFormat.format(Date())
+        prefs.edit().putString("historique_$dateKey", "$cochees/$total").apply()
     }
 
     private fun lancerAnimationFlamme() {
@@ -202,5 +215,13 @@ class MainActivity : AppCompatActivity() {
                     .start()
             }
             .start()
+    }
+
+    private fun jouerSonReussite() {
+        val mediaPlayer = MediaPlayer.create(this, R.raw.success)
+        mediaPlayer.start()
+        mediaPlayer.setOnCompletionListener {
+            it.release()
+        }
     }
 }
