@@ -71,20 +71,16 @@ class MainActivity : AppCompatActivity() {
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        // Gestion du jour nouveau
-        val todayKey = dateFormat.format(Date())
-        val lastDate = prefs.getString("last_open_date", "")
-        val isNewDay = todayKey != lastDate
-        if (isNewDay) {
-            flammeDéjàValidée = false
-            prefs.edit().putString("last_open_date", todayKey).apply()
+        flammeDéjàValidée = false
 
-            // Exemple pour reset test
-            db.medicamentDao().supprimerTous()
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Doliprane", moment = "matin"))
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Vitamine D", moment = "midi"))
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Oméprazole", moment = "soir"))
-        }
+        // Reset à chaque lancement (attention, ça vide la DB)
+        db.medicamentDao().supprimerTous()
+        db.medicamentDao().ajouterMedicament(Medicament(nom = "Doliprane", moment = "matin"))
+        db.medicamentDao().ajouterMedicament(Medicament(nom = "Vitamine D", moment = "midi"))
+        db.medicamentDao().ajouterMedicament(Medicament(nom = "Oméprazole", moment = "soir"))
+        db.medicamentDao().ajouterMedicament(Medicament(nom = "Advil", moment = "matin"))
+
+
 
         // Affichage dynamique des meds
         ajouterMeds(matinContainer, db.medicamentDao().getMedicamentParMoment("matin").map { it.nom })
