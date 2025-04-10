@@ -12,8 +12,8 @@
     <!-- Bouton retour -->
     <ImageButton
         android:id="@+id/btnBackInfo"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Retour"
         android:src="@android:drawable/ic_menu_revert"
@@ -38,18 +38,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Contenu informatif à compléter..."
+        android:layout_marginTop="32dp"
         app:layout_constraintTop_toBottomOf="@id/btnBackInfo"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="32dp" />
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Switch Troll -->
-    <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/switchNePasToucher"
+    <!-- Bouton fuyant -->
+    <Button
+        android:id="@+id/btnFuyant"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
-        android:minWidth="48dp"
-        android:text="Ne pas toucher"
+        android:text="Ne pas toucher !"
+        android:padding="12dp"
         android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

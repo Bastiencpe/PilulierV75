@@ -1,35 +1,60 @@
 package com.example.pilulier
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.widget.ImageButton
-import android.widget.Toast
+import android.view.View
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
+import kotlin.random.Random
 
 class InfoActivity : AppCompatActivity() {
+
+    private lateinit var btnFuyant: Button
+    private lateinit var rootLayout: ConstraintLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_info)
 
-        val trollSwitch = findViewById<SwitchCompat>(R.id.switchNePasToucher)
+        val btnBack = findViewById<View>(R.id.btnBackInfo)
+        btnFuyant = findViewById(R.id.btnFuyant)
+        rootLayout = findViewById(R.id.info_main)
 
-        trollSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                // Message drôle
-                Toast.makeText(this, "Je t'avais dit de ne pas toucher ! 😜", Toast.LENGTH_SHORT).show()
+        btnBack.setOnClickListener { finish() }
 
-                // Revenir à OFF après 500 ms
-                Handler(Looper.getMainLooper()).postDelayed({
-                    trollSwitch.isChecked = false
-                }, 500)
+        btnFuyant.setOnClickListener {
+            btnFuyant.visibility = View.INVISIBLE
+
+            rootLayout.post {
+                val maxX = rootLayout.width - btnFuyant.width
+                val maxY = rootLayout.height - btnFuyant.height
+
+                val randomX = Random.nextInt(0, maxX)
+                val randomY = Random.nextInt(0, maxY)
+
+                // On applique une nouvelle position avec ConstraintSet
+                val constraintSet = ConstraintSet()
+                constraintSet.clone(rootLayout)
+
+                constraintSet.connect(
+                    btnFuyant.id,
+                    ConstraintSet.START,
+                    ConstraintSet.PARENT_ID,
+                    ConstraintSet.START,
+                    randomX
+                )
+                constraintSet.connect(
+                    btnFuyant.id,
+                    ConstraintSet.TOP,
+                    ConstraintSet.PARENT_ID,
+                    ConstraintSet.TOP,
+                    randomY
+                )
+
+                constraintSet.applyTo(rootLayout)
+                btnFuyant.visibility = View.VISIBLE
             }
-        }
-
-        // Bouton retour
-        findViewById<ImageButton>(R.id.btnBackInfo).setOnClickListener {
-            finish()
         }
     }
 }
