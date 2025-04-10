@@ -3,13 +3,15 @@ package com.example.pilulier.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity
+@Entity(tableName = "medicaments")
 data class Medicament(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val nom: String,
-    val moment: String, // "matin", "midi", "soir"
-    val date: String = "", // pour pouvoir distinguer les jours
-    val pris: Boolean = false
+    val moment: String,
+    val dateDebut: String?,
+    val dateFin: String?,
+    val frequence: String?,
+    val pris: Boolean = false // État par défaut (non pris)
 )
 
 

@@ -3,19 +3,20 @@ package com.example.pilulier.data
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface MedicamentDao {
 
-    @Query("SELECT * FROM Medicament WHERE moment = :moment AND date = :date")
-    fun getMedicamentParMomentEtDate(moment: String, date: String): List<Medicament>
-
     @Insert
     fun ajouterMedicament(medicament: Medicament)
 
-    @Query("UPDATE Medicament SET pris = :etat WHERE id = :id")
-    fun majEtatPrise(id: Int, etat: Boolean)
+    @Query("SELECT * FROM medicaments WHERE moment = :moment")
+    fun getMedicamentParMoment(moment: String): List<Medicament>
 
-    @Query("DELETE FROM Medicament")
+    @Query("DELETE FROM medicaments")
     fun supprimerTous()
+
+    @Update
+    fun majEtatPrise(medicament: Medicament) // Mise à jour avec un objet Medicament
 }

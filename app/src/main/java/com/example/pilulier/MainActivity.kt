@@ -20,8 +20,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var db: AppDatabase
 
+    private lateinit var db: AppDatabase
     private var compteurFlamme = 1
     private var flammeDéjàValidée = false
 
@@ -39,11 +39,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Base de données
+        // Initialisation de la base de données
         db = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java, "pilulier-db"
-        ).allowMainThreadQueries().build()
+        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
 
         // Thème
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
@@ -53,14 +53,14 @@ class MainActivity : AppCompatActivity() {
             else AppCompatDelegate.MODE_NIGHT_NO
         )
 
-        // Marges
+        // Marges (gestion des fenêtres système)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Date
+        // Date actuelle
         val dateTextView: TextView = findViewById(R.id.date_text)
         val currentDateStr = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
         today = dateFormat.format(Date())
@@ -71,22 +71,11 @@ class MainActivity : AppCompatActivity() {
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
 
-        val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
-        val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
-        val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
+        // Exemple de données initiales (si nécessaire)
+        resetDatabase()
 
-        // Initialiser les données du jour si absentes
-        if (db.medicamentDao().getMedicamentParMomentEtDate("matin", today).isEmpty()) {
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Doliprane", moment = "matin", date = today))
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Vitamine D", moment = "midi", date = today))
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Oméprazole", moment = "soir", date = today))
-            db.medicamentDao().ajouterMedicament(Medicament(nom = "Advil", moment = "matin", date = today))
-        }
-
-        // Afficher les médicaments
-        ajouterMeds(matinContainer, db.medicamentDao().getMedicamentParMomentEtDate("matin", today))
-        ajouterMeds(midiContainer, db.medicamentDao().getMedicamentParMomentEtDate("midi", today))
-        ajouterMeds(soirContainer, db.medicamentDao().getMedicamentParMomentEtDate("soir", today))
+        // Filtrer les médicaments du jour et les afficher
+        afficherMedicamentParMoment()
 
         mettreAJourProgression()
 
@@ -112,6 +101,70 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun resetDatabase() {
+        db.medicamentDao().supprimerTous()
+        db.medicamentDao().ajouterMedicament(
+            Medicament(
+                nom = "Doliprane",
+                moment = "matin",
+                dateDebut = "2025-04-10",
+                dateFin = "2025-04-17",
+                frequence = "quotidien"
+            )
+        )
+        db.medicamentDao().ajouterMedicament(
+            Medicament(
+                nom = "Fer",
+                moment = "soir",
+                dateDebut = "2025-04-10",
+                dateFin = "2025-04-17",
+                frequence = "1j sur 2"
+            )
+        )
+        db.medicamentDao().ajouterMedicament(
+            Medicament(
+                nom = "Advil",
+                moment = "midi",
+                dateDebut = "2025-04-10",
+                dateFin = "2025-04-17",
+                frequence = "quotidien"
+            )
+        )
+    }
+
+    private fun afficherMedicamentParMoment() {
+        val matinContainer = findViewById<LinearLayout>(R.id.matin_container)
+        val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
+        val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
+
+        ajouterMeds(matinContainer, filtrerMedicamentDuJour(db.medicamentDao().getMedicamentParMoment("matin")))
+        ajouterMeds(midiContainer, filtrerMedicamentDuJour(db.medicamentDao().getMedicamentParMoment("midi")))
+        ajouterMeds(soirContainer, filtrerMedicamentDuJour(db.medicamentDao().getMedicamentParMoment("soir")))
+    }
+
+    private fun filtrerMedicamentDuJour(medicaments: List<Medicament>): List<Medicament> {
+        val todayDate = dateFormat.parse(today) ?: return emptyList()
+        return medicaments.filter { med ->
+            val dateDebut = med.dateDebut?.let { dateFormat.parse(it) } ?: return@filter false
+            val dateFin = med.dateFin?.let { dateFormat.parse(it) } ?: return@filter false
+
+            if (todayDate.before(dateDebut) || todayDate.after(dateFin)) return@filter false
+
+            when (med.frequence?.lowercase(Locale.FRANCE)) {
+                "quotidien" -> true
+                "1j sur 2" -> {
+                    val diff = (todayDate.time - dateDebut.time) / (1000 * 60 * 60 * 24)
+                    diff % 2 == 0L
+                }
+                "hebdomadaire" -> {
+                    val calendar = Calendar.getInstance().apply { time = todayDate }
+                    calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY // ou autre jour ?
+                }
+                else -> false
+            }
+        }
+    }
+
     private fun ajouterMeds(container: LinearLayout, meds: List<Medicament>) {
         container.removeAllViews()
         for (med in meds) {
@@ -121,10 +174,13 @@ class MainActivity : AppCompatActivity() {
             checkBox.isChecked = med.pris
 
             checkBox.setOnCheckedChangeListener { _, isChecked ->
-                db.medicamentDao().majEtatPrise(med.id, isChecked)
+                // Récupère le médicament de la base de données
+                val updatedMedicament = med.copy(pris = isChecked) // Met à jour l'état "pris" avec la valeur de la case à cocher
+                db.medicamentDao().majEtatPrise(updatedMedicament) // Passe l'objet Medicament mis à jour
                 verifierToutesLesCasesCochees()
                 mettreAJourProgression()
             }
+
 
             container.addView(checkBox)
         }
