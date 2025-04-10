@@ -1,5 +1,7 @@
 package com.example.pilulier
 
+import java.text.SimpleDateFormat
+import java.util.*
 import com.example.pilulier.data.AppDatabase
 import com.example.pilulier.data.Medicament
 
@@ -41,4 +43,25 @@ fun ajouterMedsInitiales(db: AppDatabase) {
             )
         )
     }
+}
+
+fun getMedsPourDate(db: AppDatabase, dateStr: String): List<String> {
+    val format = SimpleDateFormat("yyyy-MM-dd", Locale.FRANCE)
+    val date = format.parse(dateStr) ?: return emptyList()
+
+    return db.medicamentDao().getTousLesMedicaments().filter { med ->
+        val debut = med.dateDebut?.let { format.parse(it) }
+        val fin = med.dateFin?.let { format.parse(it) }
+        if (debut == null || fin == null || date.before(debut) || date.after(fin)) return@filter false
+
+        when (med.frequence?.lowercase(Locale.FRANCE)) {
+            "quotidien" -> true
+            "1j sur 2" -> ((date.time - debut.time) / (1000 * 60 * 60 * 24)) % 2 == 0L
+            "hebdomadaire" -> {
+                val cal = Calendar.getInstance().apply { time = date }
+                cal.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY
+            }
+            else -> false
+        }
+    }.map { it.nom }
 }

@@ -20,6 +20,9 @@ interface MedicamentDao {
     @Query("DELETE FROM medicaments")
     fun supprimerTous()
 
+    @Query("SELECT * FROM medicaments")
+    fun getTousLesMedicaments(): List<Medicament>
+
     @Update
     fun majEtatPrise(medicament: Medicament) // Mise à jour avec un objet Medicament
 }

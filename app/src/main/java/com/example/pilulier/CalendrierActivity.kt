@@ -1,4 +1,6 @@
 package com.example.pilulier
+import androidx.room.Room
+import com.example.pilulier.data.AppDatabase
 
 import android.os.Bundle
 import android.widget.CalendarView
@@ -23,6 +25,10 @@ class CalendrierActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_calendrier)
+        val db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java, "pilulier-db"
+        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
 
         calendarView = findViewById(R.id.calendarView)
         medsText = findViewById(R.id.tvMedsOfDay)
@@ -31,13 +37,13 @@ class CalendrierActivity : AppCompatActivity() {
 
         calendarView.setOnDateChangeListener { _, year, month, dayOfMonth ->
             val dateStr = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
-            val liste = medsParJour[dateStr]
+            val liste = getMedsPourDate(db, dateStr)
 
             medsText.text = when {
-                liste == null -> "Aucun médicament enregistré pour ce jour."
                 liste.isEmpty() -> "Aucun médicament prévu ce jour-là."
                 else -> "Médicaments du $dateStr :\n• " + liste.joinToString("\n• ")
             }
+
         }
 
         // Bouton retour
