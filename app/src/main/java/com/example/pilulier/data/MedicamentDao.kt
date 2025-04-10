@@ -11,6 +11,9 @@ interface MedicamentDao {
     @Insert
     fun ajouterMedicament(medicament: Medicament)
 
+    @Query("SELECT * FROM medicaments WHERE nom = :nom")
+    fun getMedicamentParNom(nom: String): List<Medicament>
+
     @Query("SELECT * FROM medicaments WHERE moment = :moment")
     fun getMedicamentParMoment(moment: String): List<Medicament>
 
