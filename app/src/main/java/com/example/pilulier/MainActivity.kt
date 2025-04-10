@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var db: AppDatabase
     private var compteurFlamme = 1
-    private var flammeDéjàValidée = false
+    private var flammeDejaValidee = false
 
     private lateinit var bottomNav: BottomNavigationView
     private lateinit var prefs: SharedPreferences
@@ -190,15 +190,15 @@ class MainActivity : AppCompatActivity() {
         val toutesLesCases = getToutesLesCheckboxes()
         val toutesCochees = toutesLesCases.all { it.isChecked }
 
-        if (toutesCochees && !flammeDéjàValidée) {
+        if (toutesCochees && !flammeDejaValidee) {
             compteurFlamme++
             bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
-            flammeDéjàValidée = true
+            flammeDejaValidee = true
             lancerAnimationFlamme()
         }
 
         if (!toutesCochees) {
-            flammeDéjàValidée = false
+            flammeDejaValidee = false
         }
     }
 
@@ -216,14 +216,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getToutesLesCheckboxes(): List<CheckBox> {
+        // Récupère tous les conteneurs (matin, midi, soir) dans un seul appel
         val containers = listOf(
-            findViewById<LinearLayout>(R.id.matin_container),
-            findViewById<LinearLayout>(R.id.midi_container),
+            findViewById(R.id.matin_container),
+            findViewById(R.id.midi_container),
             findViewById<LinearLayout>(R.id.soir_container)
         )
+
+        // Récupère toutes les CheckBoxes à partir des containers sans déclarer explicitement des arguments
         return containers.flatMap { container ->
             (0 until container.childCount).mapNotNull {
-                container.getChildAt(it) as? CheckBox
+                container.getChildAt(it) as? CheckBox // Récupère les CheckBox dans chaque container
             }
         }
     }
