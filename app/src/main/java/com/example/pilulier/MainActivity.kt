@@ -13,7 +13,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.room.Room
-import com.example.pilulier.data.*
+import com.example.pilulier.data.AppDatabase
+import com.example.pilulier.data.Medicament
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import java.text.SimpleDateFormat
 import java.util.*
@@ -32,17 +33,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressText: TextView
     private lateinit var flameAnim: TextView
 
+    private lateinit var today: String
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Initialisation DB Room
+        // Base de données
         db = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java, "pilulier-db"
         ).allowMainThreadQueries().build()
 
-        // Thème utilisateur
+        // Thème
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
@@ -50,19 +53,20 @@ class MainActivity : AppCompatActivity() {
             else AppCompatDelegate.MODE_NIGHT_NO
         )
 
-        // Marges système
+        // Marges
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Affichage date
+        // Date
         val dateTextView: TextView = findViewById(R.id.date_text)
-        val currentDate = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
-        dateTextView.text = currentDate
+        val currentDateStr = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
+        today = dateFormat.format(Date())
+        dateTextView.text = currentDateStr
 
-        // Init vues
+        // UI
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
@@ -71,21 +75,18 @@ class MainActivity : AppCompatActivity() {
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        flammeDéjàValidée = false
+        // Initialiser les données du jour si absentes
+        if (db.medicamentDao().getMedicamentParMomentEtDate("matin", today).isEmpty()) {
+            db.medicamentDao().ajouterMedicament(Medicament(nom = "Doliprane", moment = "matin", date = today))
+            db.medicamentDao().ajouterMedicament(Medicament(nom = "Vitamine D", moment = "midi", date = today))
+            db.medicamentDao().ajouterMedicament(Medicament(nom = "Oméprazole", moment = "soir", date = today))
+            db.medicamentDao().ajouterMedicament(Medicament(nom = "Advil", moment = "matin", date = today))
+        }
 
-        // Reset à chaque lancement (attention, ça vide la DB)
-        db.medicamentDao().supprimerTous()
-        db.medicamentDao().ajouterMedicament(Medicament(nom = "Doliprane", moment = "matin"))
-        db.medicamentDao().ajouterMedicament(Medicament(nom = "Vitamine D", moment = "midi"))
-        db.medicamentDao().ajouterMedicament(Medicament(nom = "Oméprazole", moment = "soir"))
-        db.medicamentDao().ajouterMedicament(Medicament(nom = "Advil", moment = "matin"))
-
-
-
-        // Affichage dynamique des meds
-        ajouterMeds(matinContainer, db.medicamentDao().getMedicamentParMoment("matin").map { it.nom })
-        ajouterMeds(midiContainer, db.medicamentDao().getMedicamentParMoment("midi").map { it.nom })
-        ajouterMeds(soirContainer, db.medicamentDao().getMedicamentParMoment("soir").map { it.nom })
+        // Afficher les médicaments
+        ajouterMeds(matinContainer, db.medicamentDao().getMedicamentParMomentEtDate("matin", today))
+        ajouterMeds(midiContainer, db.medicamentDao().getMedicamentParMomentEtDate("midi", today))
+        ajouterMeds(soirContainer, db.medicamentDao().getMedicamentParMomentEtDate("soir", today))
 
         mettreAJourProgression()
 
@@ -111,21 +112,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun ajouterMeds(container: LinearLayout, noms: List<String>) {
+    private fun ajouterMeds(container: LinearLayout, meds: List<Medicament>) {
         container.removeAllViews()
-        for (nom in noms) {
+        for (med in meds) {
             val checkBox = CheckBox(this)
-            checkBox.text = nom
+            checkBox.text = med.nom
             checkBox.textSize = 16f
-            checkBox.isChecked = false
-            checkBox.setOnCheckedChangeListener { _, _ ->
+            checkBox.isChecked = med.pris
+
+            checkBox.setOnCheckedChangeListener { _, isChecked ->
+                db.medicamentDao().majEtatPrise(med.id, isChecked)
                 verifierToutesLesCasesCochees()
                 mettreAJourProgression()
             }
+
             container.addView(checkBox)
         }
     }
-
 
     private fun verifierToutesLesCasesCochees() {
         val toutesLesCases = getToutesLesCheckboxes()
