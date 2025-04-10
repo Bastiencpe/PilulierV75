@@ -19,7 +19,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    // Ligne nulle
     private lateinit var db: AppDatabase
 
     private var compteurFlamme = 1

@@ -1,4 +1,3 @@
-// Ligne nulle
 package com.example.pilulier.data
 
 import androidx.room.Database
