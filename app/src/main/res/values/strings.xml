@@ -5,4 +5,6 @@
     <string name="midi_label">MIDI :</string>
     <string name="soir_label">SOIR :</string>
     <string name="medicament_label">Médicament</string>
+    <string name="add_texture">Retour</string>
+
 </resources>

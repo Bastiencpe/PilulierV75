@@ -91,7 +91,10 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_calendar -> {
                     startActivity(Intent(this, CalendrierActivity::class.java)); true
                 }
-                R.id.nav_pill -> true
+                R.id.nav_pill -> {
+                startActivity(Intent(this, PhotoActivity::class.java)); true
+                }
+
                 R.id.nav_fire -> true
                 R.id.nav_profile -> {
                     startActivity(Intent(this, ProfilActivity::class.java)); true
