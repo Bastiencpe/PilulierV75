@@ -3,7 +3,7 @@ package com.example.pilulier
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.view.View
+
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -45,6 +45,9 @@ class MainActivity : AppCompatActivity() {
             AppDatabase::class.java, "pilulier-db"
         ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
 
+        // Ajouter les médicaments initiaux
+        ajouterMedsInitiales(db)
+
         // Thème
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
@@ -71,9 +74,6 @@ class MainActivity : AppCompatActivity() {
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
 
-        // Exemple de données initiales (si nécessaire)
-        resetDatabase()
-
         // Filtrer les médicaments du jour et les afficher
         afficherMedicamentParMoment()
 
@@ -99,37 +99,6 @@ class MainActivity : AppCompatActivity() {
                 else -> false
             }
         }
-    }
-
-    private fun resetDatabase() {
-        db.medicamentDao().supprimerTous()
-        db.medicamentDao().ajouterMedicament(
-            Medicament(
-                nom = "Doliprane",
-                moment = "matin",
-                dateDebut = "2025-04-10",
-                dateFin = "2025-04-17",
-                frequence = "quotidien"
-            )
-        )
-        db.medicamentDao().ajouterMedicament(
-            Medicament(
-                nom = "Fer",
-                moment = "soir",
-                dateDebut = "2025-04-10",
-                dateFin = "2025-04-17",
-                frequence = "1j sur 2"
-            )
-        )
-        db.medicamentDao().ajouterMedicament(
-            Medicament(
-                nom = "Advil",
-                moment = "midi",
-                dateDebut = "2025-04-10",
-                dateFin = "2025-04-17",
-                frequence = "quotidien"
-            )
-        )
     }
 
     private fun afficherMedicamentParMoment() {
@@ -181,7 +150,6 @@ class MainActivity : AppCompatActivity() {
                 mettreAJourProgression()
             }
 
-
             container.addView(checkBox)
         }
     }
@@ -216,17 +184,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getToutesLesCheckboxes(): List<CheckBox> {
-        // Récupère tous les conteneurs (matin, midi, soir) dans un seul appel
         val containers = listOf(
             findViewById(R.id.matin_container),
             findViewById(R.id.midi_container),
             findViewById<LinearLayout>(R.id.soir_container)
         )
 
-        // Récupère toutes les CheckBoxes à partir des containers sans déclarer explicitement des arguments
         return containers.flatMap { container ->
             (0 until container.childCount).mapNotNull {
-                container.getChildAt(it) as? CheckBox // Récupère les CheckBox dans chaque container
+                container.getChildAt(it) as? CheckBox
             }
         }
     }
@@ -234,25 +200,4 @@ class MainActivity : AppCompatActivity() {
     private fun lancerAnimationFlamme() {
         flameAnim.alpha = 0f
         flameAnim.scaleX = 0.5f
-        flameAnim.scaleY = 0.5f
-        flameAnim.visibility = View.VISIBLE
-
-        flameAnim.animate()
-            .alpha(1f)
-            .scaleX(1.5f)
-            .scaleY(1.5f)
-            .setDuration(400)
-            .withEndAction {
-                flameAnim.animate()
-                    .alpha(0f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(400)
-                    .withEndAction {
-                        flameAnim.visibility = View.INVISIBLE
-                    }
-                    .start()
-            }
-            .start()
-    }
-}
+        flameAnim.scaleY = 0f }}
