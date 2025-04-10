@@ -3,6 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/info_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp"
@@ -28,22 +29,29 @@
         android:textSize="24sp"
         android:textStyle="bold"
         android:layout_marginStart="16dp"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@id/btnBackInfo"
         app:layout_constraintBottom_toBottomOf="@id/btnBackInfo" />
 
-    <!-- Placeholder texte -->
+    <!-- Contenu fictif -->
     <TextView
         android:id="@+id/infoPlaceholder"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Ici s'afficheront les informations utiles sur l'application, son fonctionnement, les mentions légales, etc."
-        android:textSize="18sp"
-        android:textAlignment="center"
-        android:gravity="center"
-        android:layout_marginTop="32dp"
+        android:text="Contenu informatif à compléter..."
         app:layout_constraintTop_toBottomOf="@id/btnBackInfo"
         app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="32dp" />
+
+    <!-- Switch Troll -->
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switchNePasToucher"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:minWidth="48dp"
+        android:text="Ne pas toucher"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
