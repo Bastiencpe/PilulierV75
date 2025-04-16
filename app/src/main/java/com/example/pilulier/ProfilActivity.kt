@@ -27,6 +27,14 @@ class ProfilActivity : AppCompatActivity() {
     private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Appliquer le thème dès le démarrage (sans recréer plus tard)
+        val settingsPrefs = getSharedPreferences("settings", MODE_PRIVATE)
+        val isDarkMode = settingsPrefs.getBoolean("dark_mode", false)
+        AppCompatDelegate.setDefaultNightMode(
+            if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES
+            else AppCompatDelegate.MODE_NIGHT_NO
+        )
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_profil)
 
@@ -51,29 +59,25 @@ class ProfilActivity : AppCompatActivity() {
         // ordonnances.setText(prefs.getString("ordonnances", ""))
         // preferences.setText(prefs.getString("preferences", ""))
 
-        // Charger photo si existante
+        // Charger la photo de profil
         prefs.getString("photo_uri", null)?.let { uriString ->
             imageProfil.setImageURI(Uri.parse(uriString))
         }
 
-        // Gestion du thème
-        val isDarkMode = getSharedPreferences("settings", MODE_PRIVATE)
-            .getBoolean("dark_mode", false)
+        // Appliquer l'état du switch du thème
         themeSwitch.isChecked = isDarkMode
 
+        // Changer de thème sans recréer l'activité
         themeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            getSharedPreferences("settings", MODE_PRIVATE)
-                .edit()
-                .putBoolean("dark_mode", isChecked)
-                .apply()
-
+            settingsPrefs.edit().putBoolean("dark_mode", isChecked).apply()
             AppCompatDelegate.setDefaultNightMode(
                 if (isChecked) AppCompatDelegate.MODE_NIGHT_YES
                 else AppCompatDelegate.MODE_NIGHT_NO
             )
+            // Pas de recreate(), les cases de MainActivity ne sont pas perdues !
         }
 
-        // Lancer activité pour sélectionner une image
+        // Choix de la photo
         imagePickerLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->

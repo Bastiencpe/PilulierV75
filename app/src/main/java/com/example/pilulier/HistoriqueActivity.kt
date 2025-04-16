@@ -4,8 +4,10 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -15,6 +17,7 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,6 +46,10 @@ class HistoriqueActivity : AppCompatActivity() {
         recyclerView.adapter = HistoriqueAdapter(items)
 
         setupGraphique(items)
+
+        findViewById<Button>(R.id.btnExport).setOnClickListener {
+            exporterHistoriqueEnCSV(items)
+        }
     }
 
     private fun getDerniersJoursAvecProgression(): List<Pair<String, String>> {
@@ -56,7 +63,7 @@ class HistoriqueActivity : AppCompatActivity() {
             calendar.add(Calendar.DAY_OF_YEAR, -1)
         }
 
-        return list.reversed() // du plus ancien au plus récent
+        return list.reversed()
     }
 
     private fun setupGraphique(data: List<Pair<String, String>>) {
@@ -88,6 +95,26 @@ class HistoriqueActivity : AppCompatActivity() {
         barChart.description.isEnabled = false
         barChart.legend.isEnabled = false
         barChart.invalidate()
+    }
+
+    private fun exporterHistoriqueEnCSV(data: List<Pair<String, String>>) {
+        val csv = StringBuilder()
+        csv.append("Date,Progression\n")
+
+        for ((date, progression) in data) {
+            csv.append("$date,$progression\n")
+        }
+
+        try {
+            val filename = "historique_${System.currentTimeMillis()}.csv"
+            val file = File(getExternalFilesDir(null), filename)
+            file.writeText(csv.toString())
+
+            Toast.makeText(this, "Exporté : ${file.absolutePath}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Erreur export", Toast.LENGTH_SHORT).show()
+        }
     }
 
     class HistoriqueAdapter(private val data: List<Pair<String, String>>) :

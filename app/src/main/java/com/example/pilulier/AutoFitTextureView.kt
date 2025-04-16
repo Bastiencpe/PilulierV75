@@ -12,12 +12,14 @@ class AutoFitTextureView @JvmOverloads constructor(
     private var ratioHeight = 0
 
     fun setAspectRatio(width: Int, height: Int) {
+        if (width < 0 || height < 0) throw IllegalArgumentException("Size cannot be negative.")
         ratioWidth = width
         ratioHeight = height
         requestLayout()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val height = MeasureSpec.getSize(heightMeasureSpec)
 

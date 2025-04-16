@@ -2,7 +2,7 @@ package com.example.pilulier
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.os.Bundle
@@ -18,14 +18,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
 import java.util.*
-import android.graphics.Bitmap
-
 
 class PhotoActivity : AppCompatActivity() {
 
-    private lateinit var textureView: TextureView
+    private lateinit var textureView: AutoFitTextureView
     private lateinit var photoPreview: ImageView
     private lateinit var btnBack: Button
     private lateinit var btnCapture: Button
@@ -35,6 +32,7 @@ class PhotoActivity : AppCompatActivity() {
     private var cameraDevice: CameraDevice? = null
     private var captureSession: CameraCaptureSession? = null
     private lateinit var captureRequestBuilder: CaptureRequest.Builder
+    private var previewSize: Size? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,10 +44,7 @@ class PhotoActivity : AppCompatActivity() {
         btnCapture = findViewById(R.id.btnCapture)
 
         btnBack.setOnClickListener { finish() }
-
-        btnCapture.setOnClickListener {
-            prendrePhoto()
-        }
+        btnCapture.setOnClickListener { prendrePhoto() }
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED
@@ -66,14 +61,15 @@ class PhotoActivity : AppCompatActivity() {
 
         val characteristics = cameraManager.getCameraCharacteristics(cameraId)
         val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-        val previewSize: Size? = map?.getOutputSizes(SurfaceTexture::class.java)?.maxByOrNull { it.width * it.height }
-
-        previewSize?.let {
-            (textureView as AutoFitTextureView).setAspectRatio(it.width, it.height)
-        }
+        previewSize = map?.getOutputSizes(SurfaceTexture::class.java)
+            ?.maxByOrNull { it.width * it.height }
 
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                // Définir le bon ratio ici
+                previewSize?.let {
+                    textureView.setAspectRatio(it.width, it.height)
+                }
                 openCamera()
             }
 
@@ -84,9 +80,8 @@ class PhotoActivity : AppCompatActivity() {
     }
 
     private fun openCamera() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED
-        ) return
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+            return
 
         cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
             override fun onOpened(camera: CameraDevice) {
@@ -108,16 +103,19 @@ class PhotoActivity : AppCompatActivity() {
 
     private fun createPreviewSession() {
         val surfaceTexture = textureView.surfaceTexture ?: return
-        surfaceTexture.setDefaultBufferSize(textureView.width, textureView.height)
+        previewSize?.let {
+            surfaceTexture.setDefaultBufferSize(it.width, it.height)
+        }
+
         val surface = Surface(surfaceTexture)
 
-        captureRequestBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-        captureRequestBuilder.addTarget(surface)
+        captureRequestBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
+            addTarget(surface)
+        }
 
         cameraDevice?.createCaptureSession(listOf(surface), object : CameraCaptureSession.StateCallback() {
             override fun onConfigured(session: CameraCaptureSession) {
                 captureSession = session
-                captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
                 captureSession?.setRepeatingRequest(captureRequestBuilder.build(), null, null)
             }
 
@@ -132,13 +130,13 @@ class PhotoActivity : AppCompatActivity() {
         photoPreview.setImageBitmap(bitmap)
         photoPreview.visibility = ImageView.VISIBLE
 
-        // Optionnel : sauvegarde
         val filename = "photo_${System.currentTimeMillis()}.jpg"
         val file = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), filename)
         FileOutputStream(file).use {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
         }
-        Toast.makeText(this, "Photo enregistrée dans fichiers internes", Toast.LENGTH_SHORT).show()
+
+        Toast.makeText(this, "Photo enregistrée avec succès", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopCamera() {
@@ -155,7 +153,11 @@ class PhotoActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (textureView.isAvailable) openCamera() else startCamera()
+        if (textureView.isAvailable) {
+            openCamera()
+        } else {
+            startCamera()
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {

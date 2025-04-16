@@ -3,7 +3,7 @@ package com.example.pilulier
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
-
+import android.view.View
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -36,19 +36,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var today: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        // Initialisation de la base de données
-        db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java, "pilulier-db"
-        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
-
-        // Ajouter les médicaments initiaux
-        ajouterMedsInitiales(db)
-
-        // Thème
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
@@ -56,33 +43,35 @@ class MainActivity : AppCompatActivity() {
             else AppCompatDelegate.MODE_NIGHT_NO
         )
 
-        // Marges (gestion des fenêtres système)
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "pilulier-db")
+            .fallbackToDestructiveMigration()
+            .allowMainThreadQueries()
+            .build()
+
+        today = dateFormat.format(Date())
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Date actuelle
         val dateTextView: TextView = findViewById(R.id.date_text)
         val currentDateStr = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
-        today = dateFormat.format(Date())
         dateTextView.text = currentDateStr
 
-        // UI
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
         flameAnim = findViewById(R.id.flame_animation)
 
-        // Filtrer les médicaments du jour et les afficher
         afficherMedicamentParMoment()
-
         mettreAJourProgression()
 
-        // Navigation
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
-
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_info -> {
@@ -92,9 +81,8 @@ class MainActivity : AppCompatActivity() {
                     startActivity(Intent(this, CalendrierActivity::class.java)); true
                 }
                 R.id.nav_pill -> {
-                startActivity(Intent(this, PhotoActivity::class.java)); true
+                    startActivity(Intent(this, PhotoActivity::class.java)); true
                 }
-
                 R.id.nav_fire -> true
                 R.id.nav_profile -> {
                     startActivity(Intent(this, ProfilActivity::class.java)); true
@@ -109,32 +97,9 @@ class MainActivity : AppCompatActivity() {
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        ajouterMeds(matinContainer, filtrerMedicamentDuJour(db.medicamentDao().getMedicamentParMoment("matin")))
-        ajouterMeds(midiContainer, filtrerMedicamentDuJour(db.medicamentDao().getMedicamentParMoment("midi")))
-        ajouterMeds(soirContainer, filtrerMedicamentDuJour(db.medicamentDao().getMedicamentParMoment("soir")))
-    }
-
-    private fun filtrerMedicamentDuJour(medicaments: List<Medicament>): List<Medicament> {
-        val todayDate = dateFormat.parse(today) ?: return emptyList()
-        return medicaments.filter { med ->
-            val dateDebut = med.dateDebut?.let { dateFormat.parse(it) } ?: return@filter false
-            val dateFin = med.dateFin?.let { dateFormat.parse(it) } ?: return@filter false
-
-            if (todayDate.before(dateDebut) || todayDate.after(dateFin)) return@filter false
-
-            when (med.frequence?.lowercase(Locale.FRANCE)) {
-                "quotidien" -> true
-                "1j sur 2" -> {
-                    val diff = (todayDate.time - dateDebut.time) / (1000 * 60 * 60 * 24)
-                    diff % 2 == 0L
-                }
-                "hebdomadaire" -> {
-                    val calendar = Calendar.getInstance().apply { time = todayDate }
-                    calendar.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY // ou autre jour ?
-                }
-                else -> false
-            }
-        }
+        ajouterMeds(matinContainer, db.medicamentDao().getMedicamentParMoment("matin"))
+        ajouterMeds(midiContainer, db.medicamentDao().getMedicamentParMoment("midi"))
+        ajouterMeds(soirContainer, db.medicamentDao().getMedicamentParMoment("soir"))
     }
 
     private fun ajouterMeds(container: LinearLayout, meds: List<Medicament>) {
@@ -146,9 +111,7 @@ class MainActivity : AppCompatActivity() {
             checkBox.isChecked = med.pris
 
             checkBox.setOnCheckedChangeListener { _, isChecked ->
-                // Récupère le médicament de la base de données
-                val updatedMedicament = med.copy(pris = isChecked) // Met à jour l'état "pris" avec la valeur de la case à cocher
-                db.medicamentDao().majEtatPrise(updatedMedicament) // Passe l'objet Medicament mis à jour
+                db.medicamentDao().majEtatPrise(med.copy(pris = isChecked))
                 verifierToutesLesCasesCochees()
                 mettreAJourProgression()
             }
@@ -184,6 +147,8 @@ class MainActivity : AppCompatActivity() {
             "🎉 $cochees/$total médicaments pris !"
         else
             "$cochees/$total médicaments pris"
+
+        prefs.edit().putString("historique_$today", "$cochees/$total").apply()
     }
 
     private fun getToutesLesCheckboxes(): List<CheckBox> {
@@ -203,4 +168,25 @@ class MainActivity : AppCompatActivity() {
     private fun lancerAnimationFlamme() {
         flameAnim.alpha = 0f
         flameAnim.scaleX = 0.5f
-        flameAnim.scaleY = 0f }}
+        flameAnim.scaleY = 0.5f
+        flameAnim.visibility = View.VISIBLE
+
+        flameAnim.animate()
+            .alpha(1f)
+            .scaleX(1.5f)
+            .scaleY(1.5f)
+            .setDuration(400)
+            .withEndAction {
+                flameAnim.animate()
+                    .alpha(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(400)
+                    .withEndAction {
+                        flameAnim.visibility = View.INVISIBLE
+                    }
+                    .start()
+            }
+            .start()
+    }
+}
