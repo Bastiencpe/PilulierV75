@@ -8,6 +8,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+
     <!-- Fond coloré de la zone supérieure -->
     <View
         android:id="@+id/top_background"
