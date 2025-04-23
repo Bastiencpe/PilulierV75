@@ -23,6 +23,10 @@ interface MedicamentDao {
     @Query("SELECT * FROM medicaments")
     fun getTousLesMedicaments(): List<Medicament>
 
+    @Query("UPDATE medicaments SET pris = 0")
+    fun resetToutesPrises()
+
+
     @Update
     fun majEtatPrise(medicament: Medicament) // Mise à jour avec un objet Medicament
 }
