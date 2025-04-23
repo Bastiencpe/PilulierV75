@@ -14,7 +14,7 @@ fun ajouterMedsInitiales(db: AppDatabase) {
                 nom = "Doliprane",
                 moment = "matin",
                 dateDebut = "2025-04-10",
-                dateFin = "2025-04-17",
+                dateFin = "2025-04-27",
                 frequence = "quotidien"
             )
         )
@@ -25,8 +25,8 @@ fun ajouterMedsInitiales(db: AppDatabase) {
             Medicament(
                 nom = "Fer",
                 moment = "soir",
-                dateDebut = "2025-04-10",
-                dateFin = "2025-04-17",
+                dateDebut = "2025-04-11",
+                dateFin = "2025-04-27",
                 frequence = "1j sur 2"
             )
         )
@@ -38,7 +38,7 @@ fun ajouterMedsInitiales(db: AppDatabase) {
                 nom = "Advil",
                 moment = "midi",
                 dateDebut = "2025-04-10",
-                dateFin = "2025-04-17",
+                dateFin = "2025-04-27",
                 frequence = "quotidien"
             )
         )

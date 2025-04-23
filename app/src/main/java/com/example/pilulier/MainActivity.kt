@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
             .fallbackToDestructiveMigration()
             .allowMainThreadQueries()
             .build()
-
+        ajouterMedsInitiales(db)
         today = dateFormat.format(Date())
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -97,9 +97,21 @@ class MainActivity : AppCompatActivity() {
         val midiContainer = findViewById<LinearLayout>(R.id.midi_container)
         val soirContainer = findViewById<LinearLayout>(R.id.soir_container)
 
-        ajouterMeds(matinContainer, db.medicamentDao().getMedicamentParMoment("matin"))
-        ajouterMeds(midiContainer, db.medicamentDao().getMedicamentParMoment("midi"))
-        ajouterMeds(soirContainer, db.medicamentDao().getMedicamentParMoment("soir"))
+        val medsValides = getMedsPourDate(db, today)
+
+        ajouterMeds(
+            matinContainer,
+            db.medicamentDao().getMedicamentParMoment("matin").filter { it.nom in medsValides }
+        )
+        ajouterMeds(
+            midiContainer,
+            db.medicamentDao().getMedicamentParMoment("midi").filter { it.nom in medsValides }
+        )
+        ajouterMeds(
+            soirContainer,
+            db.medicamentDao().getMedicamentParMoment("soir").filter { it.nom in medsValides }
+        )
+
     }
 
     private fun ajouterMeds(container: LinearLayout, meds: List<Medicament>) {
