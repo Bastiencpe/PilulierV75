@@ -6,5 +6,25 @@
     <string name="soir_label">SOIR :</string>
     <string name="medicament_label">Médicament</string>
     <string name="add_texture">Retour</string>
+    <string name="info_title">Informations</string>
+    <string name="info_text"> Cette application vous aide à suivre la prise de vos médicaments au quotidien grâce à un pilulier intelligent.\n
+
+    📱 Fonctionnalités :\n
+    - Visualisez les médicaments à prendre selon le moment de la journée (matin, midi, soir). \n
+    - Recevez des rappels et suivez vos prises via une flamme d’assiduité. \n
+    - Connectez votre pilulier via Bluetooth pour synchroniser les données automatiquement. \n
+    \n
+    🔐 Données personnelles :\n
+    Toutes les données sont stockées uniquement sur votre appareil. Aucune information n’est partagée ou transmise à des tiers.\n
+    \n
+    ℹ️ Mentions légales :\n
+    Cette application est un outil d’aide à la prise de médicaments et ne remplace en aucun cas un avis médical. En cas de doute, consultez un professionnel de santé.\n
+    \n
+    📧 Contact :\n
+    Pour toute question ou suggestion, vous pouvez nous contacter à :\n support@pilulier-app.com\n
+</string>
+    <string name="btn_fuyant_text">Clique-moi !</string>
+    <string name="btn_back">Retour</string>
+
 
 </resources>
