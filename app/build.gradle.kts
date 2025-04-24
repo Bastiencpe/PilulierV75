@@ -28,11 +28,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 }
 
@@ -43,7 +43,6 @@ dependencies {
     implementation(libs.material)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("com.google.mlkit:text-recognition:16.0.0")
-    implementation("org.opencv:opencv-android:4.8.0")
 
     // ROOM (Base de données locale)
     implementation("androidx.room:room-runtime:2.6.1")
