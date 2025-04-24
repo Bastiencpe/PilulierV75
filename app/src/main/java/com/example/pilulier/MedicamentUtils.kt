@@ -38,7 +38,7 @@ fun ajouterMedsInitiales(db: AppDatabase) {
                 nom = "Advil",
                 moment = "midi",
                 dateDebut = "2025-04-10",
-                dateFin = "2025-04-27",
+                dateFin = "2025-04-29",
                 frequence = "quotidien"
             )
         )
