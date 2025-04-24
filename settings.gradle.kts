@@ -22,4 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Pilulier"
 include(":app")
- 
+include(":opencv")

@@ -43,9 +43,12 @@ dependencies {
     implementation(libs.material)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
     implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation("org.opencv:opencv-android:4.8.0")
 
     // ROOM (Base de données locale)
     implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1") // (optionnel mais utile)
+    implementation(project(":opencv"))
+
 }
