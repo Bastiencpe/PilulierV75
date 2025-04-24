@@ -12,13 +12,16 @@ import android.view.Surface
 import android.view.TextureView
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import java.io.FileOutputStream
-import java.util.*
 
 class PhotoActivity : AppCompatActivity() {
 
@@ -26,6 +29,7 @@ class PhotoActivity : AppCompatActivity() {
     private lateinit var photoPreview: ImageView
     private lateinit var btnBack: Button
     private lateinit var btnCapture: Button
+    private lateinit var resultTextView: TextView
 
     private lateinit var cameraManager: CameraManager
     private lateinit var cameraId: String
@@ -42,6 +46,7 @@ class PhotoActivity : AppCompatActivity() {
         photoPreview = findViewById(R.id.photoPreview)
         btnBack = findViewById(R.id.btnBack)
         btnCapture = findViewById(R.id.btnCapture)
+        resultTextView = findViewById(R.id.resultTextView)
 
         btnBack.setOnClickListener { finish() }
         btnCapture.setOnClickListener { prendrePhoto() }
@@ -66,7 +71,6 @@ class PhotoActivity : AppCompatActivity() {
 
         textureView.surfaceTextureListener = object : TextureView.SurfaceTextureListener {
             override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                // Définir le bon ratio ici
                 previewSize?.let {
                     textureView.setAspectRatio(it.width, it.height)
                 }
@@ -80,8 +84,9 @@ class PhotoActivity : AppCompatActivity() {
     }
 
     private fun openCamera() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
-            return
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED
+        ) return
 
         cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
             override fun onOpened(camera: CameraDevice) {
@@ -136,7 +141,21 @@ class PhotoActivity : AppCompatActivity() {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
         }
 
+        detecterTexte(bitmap)
         Toast.makeText(this, "Photo enregistrée avec succès", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun detecterTexte(bitmap: Bitmap) {
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+        recognizer.process(image)
+            .addOnSuccessListener { visionText ->
+                resultTextView.text = visionText.text.ifBlank { "Aucun texte détecté." }
+            }
+            .addOnFailureListener { e ->
+                resultTextView.text = "Erreur de détection : ${e.message}"
+            }
     }
 
     private fun stopCamera() {

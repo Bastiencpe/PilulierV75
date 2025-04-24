@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 
     // ROOM (Base de données locale)
     implementation("androidx.room:room-runtime:2.6.1")
