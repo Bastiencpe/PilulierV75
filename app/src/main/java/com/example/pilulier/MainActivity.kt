@@ -1,13 +1,16 @@
 package com.example.pilulier
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.CheckBox
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
@@ -16,6 +19,7 @@ import androidx.room.Room
 import com.example.pilulier.data.AppDatabase
 import com.example.pilulier.data.Medicament
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -27,25 +31,30 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressText: TextView
     private lateinit var flameAnim: TextView
     private lateinit var bottomNav: BottomNavigationView
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.FRANCE)
+    private lateinit var today: String
 
     private var compteurFlamme = 1
     private var flammeDejaValidee = false
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.FRANCE)
-    private lateinit var today: String
+
+    private var bluetoothSocket: BluetoothSocket? = null
+    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val deviceAddress = "00006666D8FB9"
+    private val REQUEST_BLUETOOTH_PERMISSIONS = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java, "pilulier-db"
-        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "pilulier-db")
+            .fallbackToDestructiveMigration().allowMainThreadQueries().build()
 
         prefs = getSharedPreferences("settings", MODE_PRIVATE)
-        val isDarkMode = prefs.getBoolean("dark_mode", false)
         AppCompatDelegate.setDefaultNightMode(
-            if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            if (prefs.getBoolean("dark_mode", false))
+                AppCompatDelegate.MODE_NIGHT_YES
+            else
+                AppCompatDelegate.MODE_NIGHT_NO
         )
 
         today = dateFormat.format(Date())
@@ -57,8 +66,8 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val dateTextView: TextView = findViewById(R.id.date_text)
-        dateTextView.text = SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
+        findViewById<TextView>(R.id.date_text).text =
+            SimpleDateFormat("EEEE d MMMM", Locale.FRANCE).format(Date())
 
         progressBar = findViewById(R.id.progressBar)
         progressText = findViewById(R.id.progressText)
@@ -68,14 +77,95 @@ class MainActivity : AppCompatActivity() {
 
         bottomNav = findViewById(R.id.bottom_navigation)
         bottomNav.menu.findItem(R.id.nav_fire).title = "🔥 $compteurFlamme"
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
+        bottomNav.setOnItemSelectedListener {
+            when (it.itemId) {
                 R.id.nav_info -> startActivity(Intent(this, InfoActivity::class.java))
                 R.id.nav_calendar -> startActivity(Intent(this, CalendrierActivity::class.java))
                 R.id.nav_pill -> startActivity(Intent(this, AjoutActivity::class.java))
                 R.id.nav_profile -> startActivity(Intent(this, ProfilActivity::class.java))
             }
             true
+        }
+
+        findViewById<Button>(R.id.bouton_test_bluetooth).setOnClickListener {
+            if (hasBluetoothPermissions()) {
+                connecterBluetooth()
+            } else {
+                requestBluetoothPermissions()
+            }
+        }
+    }
+
+    private fun hasBluetoothPermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
+                    checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+        } else true
+    }
+
+    private fun requestBluetoothPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_SCAN
+                ),
+                REQUEST_BLUETOOTH_PERMISSIONS
+            )
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_BLUETOOTH_PERMISSIONS) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                connecterBluetooth()
+            } else {
+                Toast.makeText(this, "Permissions Bluetooth refusées", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun connecterBluetooth() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Permission Bluetooth requise", Toast.LENGTH_SHORT).show()
+            requestBluetoothPermissions()
+            return
+        }
+
+        val device = bluetoothAdapter?.bondedDevices?.find { it.address == deviceAddress }
+        if (device == null) {
+            Toast.makeText(this, "Appareil non appairé : $deviceAddress", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val uuid = device.uuids?.firstOrNull()?.uuid ?: UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        try {
+            bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
+            bluetoothSocket?.connect()
+            Toast.makeText(this, "Connecté à $deviceAddress", Toast.LENGTH_SHORT).show()
+
+            // Envoi automatique d’un message après la connexion
+            envoyerMessageBluetooth("Bonjour depuis l'application Pilulier !")
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Échec de connexion", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun envoyerMessageBluetooth(message: String) {
+        try {
+            val outputStream = bluetoothSocket?.outputStream
+            if (outputStream != null) {
+                outputStream.write(message.toByteArray())
+                Toast.makeText(this, "Message envoyé : $message", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Socket Bluetooth non connecté", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Erreur lors de l'envoi Bluetooth", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -121,13 +211,14 @@ class MainActivity : AppCompatActivity() {
     private fun ajouterMeds(container: LinearLayout, meds: List<Medicament>) {
         container.removeAllViews()
         for (med in meds) {
-            val checkBox = CheckBox(this)
-            checkBox.text = med.nom
-            checkBox.isChecked = med.pris
-            checkBox.setOnCheckedChangeListener { _, isChecked ->
-                db.medicamentDao().majEtatPrise(med.copy(pris = isChecked))
-                verifierToutesLesCasesCochees()
-                mettreAJourProgression()
+            val checkBox = CheckBox(this).apply {
+                text = med.nom
+                isChecked = med.pris
+                setOnCheckedChangeListener { _, isChecked ->
+                    db.medicamentDao().majEtatPrise(med.copy(pris = isChecked))
+                    verifierToutesLesCasesCochees()
+                    mettreAJourProgression()
+                }
             }
             container.addView(checkBox)
         }
@@ -187,5 +278,4 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         afficherMedicaments()
     }
-
 }
