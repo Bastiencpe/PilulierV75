@@ -3,7 +3,9 @@ package com.example.pilulier
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.room.Room
 import com.example.pilulier.data.AppDatabase
@@ -16,61 +18,57 @@ class AjoutActivity : AppCompatActivity() {
     private lateinit var db: AppDatabase
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.FRANCE)
 
+    private lateinit var etNom: EditText
+    private lateinit var spinnerMoment: Spinner
+    private lateinit var spinnerFrequence: Spinner
+    private lateinit var etDateDebut: EditText
+    private lateinit var etDateFin: EditText
+    private lateinit var tvForme: TextView
+
+    private var momentsDetectes: List<String> = emptyList()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ajout)
 
-        db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java, "pilulier-db"
-        ).fallbackToDestructiveMigration().allowMainThreadQueries().build()
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "pilulier-db")
+            .fallbackToDestructiveMigration().allowMainThreadQueries().build()
 
-        val etNom = findViewById<EditText>(R.id.etNomMedicament)
-        val spinnerMoment = findViewById<Spinner>(R.id.spinnerMoment)
-        val spinnerFrequence = findViewById<Spinner>(R.id.spinnerFrequence)
-        val etDateDebut = findViewById<EditText>(R.id.etDateDebut)
-        val etDateFin = findViewById<EditText>(R.id.etDateFin)
+        etNom = findViewById(R.id.etNomMedicament)
+        spinnerMoment = findViewById(R.id.spinnerMoment)
+        spinnerFrequence = findViewById(R.id.spinnerFrequence)
+        etDateDebut = findViewById(R.id.etDateDebut)
+        etDateFin = findViewById(R.id.etDateFin)
+        tvForme = findViewById(R.id.tvForme)
+
         val btnEnregistrer = findViewById<Button>(R.id.btnEnregistrer)
         val btnBack = findViewById<ImageButton>(R.id.btnBackAjout)
         val btnCamera = findViewById<Button>(R.id.btnCamera)
 
         btnCamera.setOnClickListener {
-            startActivity(Intent(this, PhotoActivity::class.java))
+            val intent = Intent(this, PhotoActivity::class.java)
+            startActivityForResult(intent, 1001)
         }
 
-
-
-
-        // Remplissage des Spinners
         val moments = listOf("matin", "midi", "soir")
         val frequences = listOf("quotidien", "1j sur 2", "hebdomadaire")
 
-        val momentAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, moments)
-        momentAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerMoment.adapter = momentAdapter
+        spinnerMoment.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, moments).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
-        val frequenceAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, frequences)
-        frequenceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerFrequence.adapter = frequenceAdapter
+        spinnerFrequence.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, frequences).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
-        // Date pickers
         val calendar = Calendar.getInstance()
-
-        val dateListenerDebut = DatePickerDialog.OnDateSetListener { _, year, month, day ->
-            val selectedDate = Calendar.getInstance()
-            selectedDate.set(year, month, day)
-            etDateDebut.setText(dateFormat.format(selectedDate.time))
-        }
-
-        val dateListenerFin = DatePickerDialog.OnDateSetListener { _, year, month, day ->
-            val selectedDate = Calendar.getInstance()
-            selectedDate.set(year, month, day)
-            etDateFin.setText(dateFormat.format(selectedDate.time))
-        }
 
         etDateDebut.setOnClickListener {
             DatePickerDialog(
-                this, dateListenerDebut,
+                this, { _, year, month, day ->
+                    val date = Calendar.getInstance().apply { set(year, month, day) }
+                    etDateDebut.setText(dateFormat.format(date.time))
+                },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
@@ -79,43 +77,96 @@ class AjoutActivity : AppCompatActivity() {
 
         etDateFin.setOnClickListener {
             DatePickerDialog(
-                this, dateListenerFin,
+                this, { _, year, month, day ->
+                    val date = Calendar.getInstance().apply { set(year, month, day) }
+                    etDateFin.setText(dateFormat.format(date.time))
+                },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
             ).show()
         }
 
-        // Enregistrement du médicament
         btnEnregistrer.setOnClickListener {
             val nom = etNom.text.toString()
-            val moment = spinnerMoment.selectedItem.toString()
             val dateDebut = etDateDebut.text.toString()
             val dateFin = etDateFin.text.toString()
             val frequence = spinnerFrequence.selectedItem.toString()
 
             if (nom.isNotBlank() && dateDebut.isNotBlank() && dateFin.isNotBlank()) {
-                val medicament = Medicament(
-                    nom = nom,
-                    moment = moment,
-                    dateDebut = dateDebut,
-                    dateFin = dateFin,
-                    frequence = frequence
-                )
-                db.medicamentDao().ajouterMedicament(medicament)
+                val moments = if (momentsDetectes.isNotEmpty()) {
+                    momentsDetectes
+                } else {
+                    listOf(spinnerMoment.selectedItem.toString())
+                }
 
-                Toast.makeText(this, "Médicament ajouté !", Toast.LENGTH_SHORT).show()
-                finish() // Retour à MainActivity
+                val message = buildString {
+                    append("Nom : $nom\n")
+                    append("Fréquence : $frequence\n")
+                    append("Moments : ${moments.joinToString(", ")}\n")
+                    append("Début : $dateDebut\n")
+                    append("Fin : $dateFin\n")
+                    append("Total : ${moments.size} prise(s)")
+                }
+
+                AlertDialog.Builder(this)
+                    .setTitle("Confirmer l'ajout")
+                    .setMessage(message)
+                    .setPositiveButton("Ajouter") { _, _ ->
+                        for (moment in moments) {
+                            val medicament = Medicament(
+                                nom = nom,
+                                moment = moment,
+                                dateDebut = dateDebut,
+                                dateFin = dateFin,
+                                frequence = frequence
+                            )
+                            db.medicamentDao().ajouterMedicament(medicament)
+                        }
+                        Toast.makeText(this, "Médicament(s) ajouté(s) !", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                    .setNegativeButton("Annuler", null)
+                    .show()
             } else {
                 Toast.makeText(this, "Veuillez remplir tous les champs", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Bouton retour
         btnBack.setOnClickListener {
             finish()
         }
+    }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
 
+        if (requestCode == 1001 && resultCode == RESULT_OK) {
+            val nom = data?.getStringExtra("texte_ocr") ?: ""
+            val freq = data?.getStringExtra("frequence_ocr") ?: ""
+            val momentsString = data?.getStringExtra("moments_ocr") ?: ""
+            val forme = data?.getStringExtra("forme_detectee") ?: ""
+
+            if (nom.isNotBlank()) etNom.setText(nom)
+
+            if (freq.isNotBlank()) {
+                val index = (spinnerFrequence.adapter as ArrayAdapter<String>).getPosition(freq)
+                if (index >= 0) spinnerFrequence.setSelection(index)
+            }
+
+            if (momentsString.isNotBlank()) {
+                momentsDetectes = momentsString.split(",").map { it.trim() }
+                val defaultMoment = momentsDetectes.firstOrNull()
+                if (defaultMoment != null) {
+                    val index = (spinnerMoment.adapter as ArrayAdapter<String>).getPosition(defaultMoment)
+                    if (index >= 0) spinnerMoment.setSelection(index)
+                }
+            }
+
+            if (forme.isNotBlank()) {
+                Log.d("AjoutActivity", "Forme détectée : $forme")
+                tvForme.text = "Forme détectée : $forme"
+            }
+        }
     }
 }

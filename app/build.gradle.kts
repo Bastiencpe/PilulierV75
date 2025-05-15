@@ -50,4 +50,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1") // (optionnel mais utile)
     implementation(project(":opencv"))
 
+
+    // Implementation pour la reconnaissance de forme
+    implementation("com.google.android.filament:filament-android:1.40.0")
+    implementation("com.google.android.filament:filament-utils-android:1.40.0")
+
 }

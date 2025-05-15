@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -145,8 +146,6 @@ class MainActivity : AppCompatActivity() {
             bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
             bluetoothSocket?.connect()
             Toast.makeText(this, "Connecté à $deviceAddress", Toast.LENGTH_SHORT).show()
-
-            // Envoi automatique d’un message après la connexion
             envoyerMessageBluetooth("Bonjour depuis l'application Pilulier !")
         } catch (e: IOException) {
             e.printStackTrace()
@@ -263,6 +262,11 @@ class MainActivity : AppCompatActivity() {
         flameAnim.scaleX = 0.5f
         flameAnim.scaleY = 0.5f
         flameAnim.visibility = View.VISIBLE
+
+        // 🔊 Son déclenché
+        val son = MediaPlayer.create(this, R.raw.success)
+        son.setOnCompletionListener { it.release() }
+        son.start()
 
         flameAnim.animate()
             .alpha(1f).scaleX(1.5f).scaleY(1.5f).setDuration(400)
