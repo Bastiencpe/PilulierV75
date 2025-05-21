@@ -53,6 +53,8 @@ dependencies {
     // Base de données locale (Room)
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+
+
     kaptTest("androidx.room:room-compiler:2.6.1")
     kaptAndroidTest("androidx.room:room-compiler:2.6.1")
 
