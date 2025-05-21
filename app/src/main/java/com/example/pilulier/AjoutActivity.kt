@@ -24,6 +24,7 @@ class AjoutActivity : AppCompatActivity() {
     private lateinit var etDateDebut: EditText
     private lateinit var etDateFin: EditText
     private lateinit var tvForme: TextView
+    private lateinit var tvCouleur: TextView
 
     private var momentsDetectes: List<String> = emptyList()
 
@@ -40,6 +41,7 @@ class AjoutActivity : AppCompatActivity() {
         etDateDebut = findViewById(R.id.etDateDebut)
         etDateFin = findViewById(R.id.etDateFin)
         tvForme = findViewById(R.id.tvForme)
+        tvCouleur = findViewById(R.id.tvCouleur)
 
         val btnEnregistrer = findViewById<Button>(R.id.btnEnregistrer)
         val btnBack = findViewById<ImageButton>(R.id.btnBackAjout)
@@ -147,6 +149,10 @@ class AjoutActivity : AppCompatActivity() {
             val momentsString = data?.getStringExtra("moments_ocr") ?: ""
             val forme = data?.getStringExtra("forme_detectee") ?: ""
 
+            val r = data?.getDoubleExtra("couleur_r", -1.0) ?: -1.0
+            val g = data?.getDoubleExtra("couleur_g", -1.0) ?: -1.0
+            val b = data?.getDoubleExtra("couleur_b", -1.0) ?: -1.0
+
             if (nom.isNotBlank()) etNom.setText(nom)
 
             if (freq.isNotBlank()) {
@@ -164,8 +170,25 @@ class AjoutActivity : AppCompatActivity() {
             }
 
             if (forme.isNotBlank()) {
-                Log.d("AjoutActivity", "Forme détectée : $forme")
                 tvForme.text = "Forme détectée : $forme"
+
+                val objFile = when (forme.lowercase(Locale.FRENCH)) {
+                    "triangle" -> "triangle.obj"
+                    "rectangle" -> "rectangle.obj"
+                    "cercle" -> "cercle.obj"
+                    else -> null
+                }
+
+                if (objFile != null) {
+                    val intent = Intent(this, ModelViewerActivity::class.java)
+                    intent.putExtra("OBJ_FILE", objFile)
+                    startActivity(intent)
+                }
+            }
+
+            if (r >= 0 && g >= 0 && b >= 0) {
+                val rgbText = "Couleur détectée : R=%.0f, G=%.0f, B=%.0f".format(r, g, b)
+                tvCouleur.text = rgbText
             }
         }
     }

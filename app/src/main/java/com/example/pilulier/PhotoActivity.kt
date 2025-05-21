@@ -21,6 +21,10 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import org.opencv.android.OpenCVLoader
+import org.opencv.android.Utils
+import org.opencv.core.*
+import org.opencv.imgproc.Imgproc
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
@@ -161,7 +165,7 @@ class PhotoActivity : AppCompatActivity() {
                     .firstOrNull { it.matches(Regex("^[A-ZÉÈÀÂÇ]{3,}(\\s[A-ZÉÈÀÂÇ]{2,})?\$")) }
                     ?: texte.lines().firstOrNull()?.take(30) ?: "Nom inconnu"
 
-                val texteNettoye = texte.lowercase(Locale.FRANCE).replace("\\s+".toRegex(), " ")
+                val texteNettoye = texte.lowercase(Locale.FRENCH).replace("\\s+".toRegex(), " ")
 
                 val frequence = when {
                     Regex("1 ?j(our)? ?sur ?2").containsMatchIn(texteNettoye) -> "1j sur 2"
@@ -176,16 +180,18 @@ class PhotoActivity : AppCompatActivity() {
                 if (texteNettoye.contains("soir")) momentsDetectes.add("soir")
                 val momentsString = momentsDetectes.joinToString(",")
 
-                // 🔍 Appelle ta fonction OpenCV ici
-                val forme = detecterForme(bitmap)
+                val (forme, couleur) = detecterForme(bitmap)
 
-                resultTextView.text = "$nomLigne\n$frequence\n$momentsString\nForme : $forme"
+                resultTextView.text = "$nomLigne\n$frequence\n$momentsString\nForme : $forme\nR: ${couleur.first}, G: ${couleur.second}, B: ${couleur.third}"
 
                 val resultIntent = Intent()
                 resultIntent.putExtra("texte_ocr", nomLigne)
                 resultIntent.putExtra("frequence_ocr", frequence)
                 resultIntent.putExtra("moments_ocr", momentsString)
                 resultIntent.putExtra("forme_detectee", forme)
+                resultIntent.putExtra("couleur_r", couleur.first)
+                resultIntent.putExtra("couleur_g", couleur.second)
+                resultIntent.putExtra("couleur_b", couleur.third)
                 setResult(RESULT_OK, resultIntent)
                 finish()
             }
@@ -194,60 +200,99 @@ class PhotoActivity : AppCompatActivity() {
             }
     }
 
-    private fun detecterForme(bitmap: Bitmap): String {
-        if (!org.opencv.android.OpenCVLoader.initDebug()) {
-            Toast.makeText(this, "OpenCV non initialisé", Toast.LENGTH_SHORT).show()
-            return "inconnue"
-        }
+    private fun detecterForme(bitmap: Bitmap): Pair<String, Triple<Double, Double, Double>> {
+        if (!OpenCVLoader.initDebug()) return "inconnue" to Triple(0.0, 0.0, 0.0)
 
-        val mat = org.opencv.core.Mat()
-        org.opencv.android.Utils.bitmapToMat(bitmap, mat)
+        val img = Mat()
+        Utils.bitmapToMat(bitmap, img)
 
-        val gray = org.opencv.core.Mat()
-        org.opencv.imgproc.Imgproc.cvtColor(mat, gray, org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY)
-        org.opencv.imgproc.Imgproc.GaussianBlur(gray, gray, org.opencv.core.Size(5.0, 5.0), 0.0)
+        val hsv = Mat()
+        Imgproc.cvtColor(img, hsv, Imgproc.COLOR_BGR2HSV)
+        Imgproc.GaussianBlur(hsv, hsv, Size(9.0, 9.0), 4.0)
 
-        val edges = org.opencv.core.Mat()
-        org.opencv.imgproc.Imgproc.Canny(gray, edges, 75.0, 200.0)
+        val hsvChannel = Mat()
+        Core.extractChannel(hsv, hsvChannel, 0)
 
-        val contours = mutableListOf<org.opencv.core.MatOfPoint>()
-        val hierarchy = org.opencv.core.Mat()
-        org.opencv.imgproc.Imgproc.findContours(
-            edges, contours, hierarchy,
-            org.opencv.imgproc.Imgproc.RETR_TREE,
-            org.opencv.imgproc.Imgproc.CHAIN_APPROX_SIMPLE
-        )
+        val thresholded = Mat()
+        Imgproc.threshold(hsvChannel, thresholded, 50.0, 255.0, Imgproc.THRESH_BINARY)
 
-        for (contour in contours) {
-            val approx = org.opencv.core.MatOfPoint2f()
-            val contour2f = org.opencv.core.MatOfPoint2f(*contour.toArray())
-            val peri = org.opencv.imgproc.Imgproc.arcLength(contour2f, true)
-            org.opencv.imgproc.Imgproc.approxPolyDP(contour2f, approx, 0.04 * peri, true)
+        val edges = Mat()
+        Imgproc.Canny(thresholded, edges, 0.0, 100.0, 5)
 
-            val vertices = approx.toArray().size
+        val dst = Mat()
+        Imgproc.cornerHarris(edges, dst, 10, 31, 0.04)
 
-            return when (vertices) {
-                3 -> "triangle"
-                4 -> "rectangle"
-                in 5..8 -> "polygone"
-                else -> "cercle"
+        val test = Mat.zeros(dst.size(), CvType.CV_8U)
+        Core.compare(dst, Scalar(0.2 * Core.minMaxLoc(dst).maxVal), test, Core.CMP_GT)
+
+        val rows = test.rows()
+        val cols = test.cols()
+
+        for (i in 0 until rows) {
+            for (j in 0 until cols) {
+                if (test.get(i, j)[0] == 255.0) {
+                    for (k in -30..30) {
+                        for (l in -30..30) {
+                            if ((k != 0 || l != 0) && (i + k in 0 until rows) && (j + l in 0 until cols)) {
+                                test.put(i + k, j + l, 0.0)
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        return "inconnue"
-    }
+        val nonZeroCount = Core.countNonZero(test)
 
+        if (nonZeroCount == 3 || nonZeroCount == 4) {
+            val forme = if (nonZeroCount == 3) "triangle" else "rectangle"
 
-    private fun stopCamera() {
-        captureSession?.close()
-        captureSession = null
-        cameraDevice?.close()
-        cameraDevice = null
+            val nonZeroPoints = MatOfPoint()
+            Core.findNonZero(test, nonZeroPoints)
+
+            var totalR = 0.0
+            var totalG = 0.0
+            var totalB = 0.0
+
+            for (i in 0 until nonZeroCount) {
+                val point = nonZeroPoints.get(i, 0)
+                val x = point[1].toInt().coerceIn(0, img.rows() - 1)
+                val y = point[0].toInt().coerceIn(0, img.cols() - 1)
+
+                val pixel = img.get(x, y)
+                totalB += pixel[0]
+                totalG += pixel[1]
+                totalR += pixel[2]
+            }
+
+            val avgR = totalR / nonZeroCount
+            val avgG = totalG / nonZeroCount
+            val avgB = totalB / nonZeroCount
+
+            return forme to Triple(avgR, avgG, avgB)
+        } else {
+            val circles = Mat()
+            Imgproc.HoughCircles(
+                edges, circles, Imgproc.HOUGH_GRADIENT, 1.0, img.rows() / 8.0,
+                200.0, 20.0, 50, 300
+            )
+            if (!circles.empty()) {
+                val circleData = circles.get(0, 0)
+                val center = Point(circleData[0], circleData[1])
+                val color = img.get(center.y.toInt() % img.rows(), center.x.toInt() % img.cols())
+                return "cercle" to Triple(color[2], color[1], color[0]) // RGB = BGR reverse
+            }
+        }
+
+        return "inconnue" to Triple(0.0, 0.0, 0.0)
     }
 
     override fun onPause() {
         super.onPause()
-        stopCamera()
+        captureSession?.close()
+        captureSession = null
+        cameraDevice?.close()
+        cameraDevice = null
     }
 
     override fun onResume() {

@@ -56,6 +56,28 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Couleur détectée -->
+    <TextView
+        android:id="@+id/tvCouleur"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Couleur détectée : -"
+        android:textStyle="italic"
+        android:textColor="@android:color/darker_gray"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/tvForme"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Container modèle 3D -->
+    <FrameLayout
+        android:id="@+id/modelContainer"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tvCouleur"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Label Moment -->
     <TextView
@@ -64,7 +86,7 @@
         android:layout_height="wrap_content"
         android:text="Ajouter le moment de la prise"
         android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/etNomMedicament"
+        app:layout_constraintTop_toBottomOf="@id/modelContainer"
         app:layout_constraintStart_toStartOf="parent" />
 
     <!-- Spinner moment -->

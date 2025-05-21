@@ -58,6 +58,8 @@
         <activity android:name=".HistoriqueActivity" />
         <activity android:name=".PhotoActivity" />
         <activity android:name=".AjoutActivity" />
+        <activity android:name=".ModelViewerActivity" />
+
 
 
 
