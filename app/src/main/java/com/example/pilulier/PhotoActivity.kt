@@ -137,13 +137,11 @@ class PhotoActivity : AppCompatActivity() {
 
         detecterTexteEtForme(bitmap)
 
-        Toast.makeText(this, "Photo enregistrée avec succès", Toast.LENGTH_SHORT).show()
     }
 
     private fun detecterTexteEtForme(bitmap: Bitmap) {
         val image = InputImage.fromBitmap(bitmap, 0)
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
                 val texte = visionText.text.ifBlank { "Aucun texte détecté." }
@@ -155,34 +153,32 @@ class PhotoActivity : AppCompatActivity() {
                     ?: texte.lines().firstOrNull()?.take(30) ?: "Nom inconnu"
 
                 val texteNettoye = texte.lowercase(Locale.FRENCH).replace("\\s+".toRegex(), " ")
-
                 val frequence = Regex("(\\d+ ?j(our)? ?sur ?\\d+)").find(texteNettoye)?.value ?: ""
                 val duree = Regex("pendant ?\\d+ ?jours").find(texteNettoye)?.value ?: ""
-
                 val moments = listOf("matin", "midi", "soir").filter { texteNettoye.contains(it) }
                 val momentsString = moments.joinToString(", ")
-
                 val (forme, couleur) = detecterFormeAvecLogiqueCollegue(bitmap)
 
-                resultTextView.text = "Nom : $nomLigne\nFréquence : $frequence\nDurée : $duree\nMoments : $momentsString\nForme : $forme\nR: ${couleur.first}, G: ${couleur.second}, B: ${couleur.third}"
-
-                val resultIntent = Intent().apply {
-                    putExtra("texte_ocr", nomLigne)
-                    putExtra("frequence_ocr", frequence)
-                    putExtra("duree_ocr", duree)
-                    putExtra("moments_ocr", momentsString)
-                    putExtra("forme_detectee", forme)
-                    putExtra("couleur_r", couleur.first)
-                    putExtra("couleur_g", couleur.second)
-                    putExtra("couleur_b", couleur.third)
+                // Ici, associe forme à nom médicament
+                val nomMedicament = when (forme) {
+                    "rectangle", "carré" -> "Doliprane"
+                    "triangle" -> "Aspirine"     // Exemple
+                    "rond" -> "Paracetamol"      // Exemple
+                    else -> nomLigne             // Texte OCR sinon
                 }
-                setResult(RESULT_OK, resultIntent)
-                finish()
+
+                resultTextView.text =
+                    "Nom : $nomMedicament\nFréquence : $frequence\nDurée : $duree\nMoments : $momentsString\nForme : $forme\nR: ${couleur.first}, G: ${couleur.second}, B: ${couleur.third}"
+
+                retournerResultats(nomMedicament, frequence, momentsString, forme,
+                    couleur.first, couleur.second, couleur.third)
             }
             .addOnFailureListener { e ->
                 resultTextView.text = "Erreur OCR : ${e.message}"
             }
     }
+
+
 
     /**
      * Détection de forme inspirée de la logique Python de ton collègue
@@ -192,142 +188,80 @@ class PhotoActivity : AppCompatActivity() {
             return "inconnue" to Triple(0.0, 0.0, 0.0)
         }
 
-        // Conversion Bitmap -> Mat OpenCV
         val src = Mat()
         Utils.bitmapToMat(bitmap, src)
-        Imgproc.cvtColor(src, src, Imgproc.COLOR_RGBA2BGR)
 
-        // Convertir en RGB (similaire à python)
-        val srcRgb = Mat()
-        Imgproc.cvtColor(src, srcRgb, Imgproc.COLOR_BGR2RGB)
+        val gray = Mat()
+        Imgproc.cvtColor(src, gray, Imgproc.COLOR_RGBA2GRAY)
+        Imgproc.GaussianBlur(gray, gray, Size(5.0, 5.0), 0.0)
+        Imgproc.Canny(gray, gray, 50.0, 150.0)
 
-        // Conversion en HSV et floutage
-        val hsv = Mat()
-        Imgproc.cvtColor(srcRgb, hsv, Imgproc.COLOR_RGB2HSV)
-        Imgproc.GaussianBlur(hsv, hsv, Size(9.0, 9.0), 4.0)
+        val contours = mutableListOf<MatOfPoint>()
+        val hierarchy = Mat()
+        Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE)
 
-        // Seuillage sur la teinte (H channel)
-        val hChannel = Mat()
-        Core.extractChannel(hsv, hChannel, 0)
-        val seuillage = Mat()
-        Imgproc.threshold(hChannel, seuillage, 50.0, 255.0, Imgproc.THRESH_BINARY)
-
-        // Détection des contours sur l'image seuillée
-        val edges = Mat()
-        Imgproc.Canny(seuillage, edges, 0.0, 100.0, 5, false)
-
-        // Détection de coins avec cornerHarris
-        val dst = Mat()
-        Imgproc.cornerHarris(edges, dst, 10, 31, 0.04)
-
-        val dstNorm = Mat()
-        Core.normalize(dst, dstNorm, 0.0, 255.0, Core.NORM_MINMAX)
-
-        val test = Mat.zeros(dst.size(), CvType.CV_8U)
-
-        val threshold = 0.2 * Core.minMaxLoc(dst).maxVal
-
-        // Seuillage des coins détectés
-        for (i in 0 until dst.rows()) {
-            for (j in 0 until dst.cols()) {
-                if (dst.get(i, j)[0] > threshold) {
-                    test.put(i, j, 255.0)
-                }
-            }
-        }
-
-        // Nettoyage des coins proches (non maximal suppression simple)
-        val mask = Mat.zeros(test.size(), CvType.CV_8U)
-        for (i in 0 until test.rows()) {
-            for (j in 0 until test.cols()) {
-                if (test.get(i, j)[0] == 255.0) {
-                    for (k in -30..30) {
-                        for (l in -30..30) {
-                            val x = i + k
-                            val y = j + l
-                            if ((k != 0 || l != 0) && x in 0 until test.rows() && y in 0 until test.cols()) {
-                                mask.put(x, y, 0.0)
-                            }
-                        }
-                    }
-                    mask.put(i, j, 255.0)
-                }
-            }
-        }
-
-        // Récupérer les points finaux de coin
-        val coinPoints = mutableListOf<Point>()
-        for (i in 0 until mask.rows()) {
-            for (j in 0 until mask.cols()) {
-                if (mask.get(i, j)[0] == 255.0) {
-                    coinPoints.add(Point(j.toDouble(), i.toDouble()))
-                }
-            }
-        }
-
-        // Détection de cercles via HoughCircles
-        val circles = Mat()
-        Imgproc.HoughCircles(
-            edges,
-            circles,
-            Imgproc.HOUGH_GRADIENT,
-            1.0,
-            edges.rows() / 8.0,
-            200.0,
-            20.0,
-            50,
-            500
-        )
-
-        var forme = "Rien"
+        var formeDetectee = "inconnue"
         var couleur = Triple(0.0, 0.0, 0.0)
 
-        when {
-            circles.cols() > 0 -> {
-                // Cercle détecté
-                forme = "rond"
-                val circleVec = circles.get(0, 0)
-                if (circleVec != null && circleVec.size >= 3) {
-                    val centerX = circleVec[0].toInt()
-                    val centerY = circleVec[1].toInt()
-                    couleur = getCouleurAuCentre(srcRgb, centerX, centerY)
+        val output = Mat()
+        Imgproc.cvtColor(gray, output, Imgproc.COLOR_GRAY2BGR)
+
+        for (contour in contours) {
+            val peri = Imgproc.arcLength(MatOfPoint2f(*contour.toArray()), true)
+            val approx = MatOfPoint2f()
+            Imgproc.approxPolyDP(MatOfPoint2f(*contour.toArray()), approx, 0.01 * peri, true)
+
+            val pts = approx.toArray()
+            val m = Imgproc.moments(contour)
+            val cx = (m.m10 / m.m00).toInt()
+            val cy = (m.m01 / m.m00).toInt()
+
+            val formName = when (pts.size) {
+                3 -> "triangle"
+                4 -> {
+                    // Vérifie si c’est un rectangle (en testant les angles ou aspect ratio)
+                    val rect = Imgproc.boundingRect(MatOfPoint(*pts))
+                    val ar = rect.width.toFloat() / rect.height.toFloat()
+                    if (ar in 0.8..1.2) "carré" else "rectangle"
                 }
-            }
-            coinPoints.size == 3 -> {
-                forme = "triangle"
-                couleur = getCouleurAuCentre(srcRgb, coinPoints[0].x.toInt(), coinPoints[0].y.toInt())
-            }
-            coinPoints.size in 4..5 -> {
-                forme = "rectangle"
-                couleur = getCouleurAuCentre(srcRgb, coinPoints[0].x.toInt(), coinPoints[0].y.toInt())
-            }
-            coinPoints.size == 12 -> {
-                forme = "étoile"
-                couleur = getCouleurAuCentre(srcRgb, coinPoints[0].x.toInt(), coinPoints[0].y.toInt())
-            }
-            else -> {
-                forme = "forme complexe"
-                if (coinPoints.isNotEmpty()) {
-                    couleur = getCouleurAuCentre(srcRgb, coinPoints[0].x.toInt(), coinPoints[0].y.toInt())
+                else -> {
+                    // Vérifie si la forme est un cercle
+                    val area = Imgproc.contourArea(contour)
+                    val circularity = 4 * Math.PI * area / (peri * peri)
+                    if (circularity > 0.8) "rond" else "inconnue"
                 }
+
+            }
+
+
+
+            if (formName != "inconnue") {
+                // Dessine le contour et le nom
+                Imgproc.drawContours(src, listOf(MatOfPoint(*pts)), -1, Scalar(0.0, 255.0, 0.0), 5)
+                Imgproc.putText(src, formName, Point(cx.toDouble(), cy.toDouble()), Imgproc.FONT_HERSHEY_SIMPLEX, 1.0, Scalar(255.0, 0.0, 0.0), 2)
+
+                // Prendre couleur au centre de la forme détectée
+                couleur = getCouleurAuCentre(src, cx, cy)
+                formeDetectee = formName
+                break  // On arrête après la première forme détectée valide
             }
         }
 
-        // Libération Mats
-        src.release()
-        srcRgb.release()
-        hsv.release()
-        hChannel.release()
-        seuillage.release()
-        edges.release()
-        dst.release()
-        dstNorm.release()
-        test.release()
-        mask.release()
-        circles.release()
+        // Convertir Mat annoté → Bitmap et afficher
+        val annotatedBitmap = Bitmap.createBitmap(src.cols(), src.rows(), Bitmap.Config.ARGB_8888)
+        Utils.matToBitmap(src, annotatedBitmap)
+        runOnUiThread {
+            photoPreview.setImageBitmap(annotatedBitmap)
+        }
 
-        return forme to couleur
+        // Libération mémoire
+        src.release()
+        gray.release()
+        hierarchy.release()
+
+        return formeDetectee to couleur
     }
+
 
     private fun getCouleurAuCentre(mat: Mat, x: Int, y: Int): Triple<Double, Double, Double> {
         val cols = mat.cols()
@@ -341,6 +275,28 @@ class PhotoActivity : AppCompatActivity() {
             Triple(0.0, 0.0, 0.0)
         }
     }
+    private fun retournerResultats(
+        texteOcr: String,
+        frequence: String,
+        moments: String,
+        forme: String,
+        couleurR: Double,
+        couleurG: Double,
+        couleurB: Double
+    ) {
+        val resultIntent = Intent()
+        resultIntent.putExtra("texte_ocr", texteOcr)
+        resultIntent.putExtra("frequence_ocr", frequence)
+        resultIntent.putExtra("moments_ocr", moments)
+        resultIntent.putExtra("forme_detectee", forme)
+        resultIntent.putExtra("couleur_r", couleurR)
+        resultIntent.putExtra("couleur_g", couleurG)
+        resultIntent.putExtra("couleur_b", couleurB)
+
+        setResult(RESULT_OK, resultIntent)
+        finish()  // Ferme l'activité et retourne les données
+    }
+
 
     private fun configureTransform() {
         val rotation = windowManager.defaultDisplay.rotation

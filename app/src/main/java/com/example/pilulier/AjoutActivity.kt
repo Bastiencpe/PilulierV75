@@ -155,30 +155,52 @@ class AjoutActivity : AppCompatActivity() {
 
             if (nom.isNotBlank()) etNom.setText(nom)
 
-            if (freq.isNotBlank()) {
-                val index = (spinnerFrequence.adapter as ArrayAdapter<String>).getPosition(freq)
-                if (index >= 0) spinnerFrequence.setSelection(index)
-            }
+            // Si la forme est rectangle (Doliprane), on remplit les champs automatiquement
+            if (forme.equals("rectangle", ignoreCase = true) || forme.equals("carré", ignoreCase = true)) {
+                // Moment = midi
+                val moments = listOf("midi")
+                momentsDetectes = moments
+                val indexMoment = (spinnerMoment.adapter as ArrayAdapter<String>).getPosition("midi")
+                if (indexMoment >= 0) spinnerMoment.setSelection(indexMoment)
 
-            if (momentsString.isNotBlank()) {
-                momentsDetectes = momentsString.split(",").map { it.trim() }
-                val defaultMoment = momentsDetectes.firstOrNull()
-                if (defaultMoment != null) {
-                    val index = (spinnerMoment.adapter as ArrayAdapter<String>).getPosition(defaultMoment)
-                    if (index >= 0) spinnerMoment.setSelection(index)
+                // Fréquence = quotidien
+                val indexFreq = (spinnerFrequence.adapter as ArrayAdapter<String>).getPosition("quotidien")
+                if (indexFreq >= 0) spinnerFrequence.setSelection(indexFreq)
+
+                // Date début = aujourd'hui
+                val calendar = Calendar.getInstance()
+                etDateDebut.setText(dateFormat.format(calendar.time))
+
+                // Date fin = dans 5 jours
+                calendar.add(Calendar.DAY_OF_MONTH, 5)
+                etDateFin.setText(dateFormat.format(calendar.time))
+
+            } else {
+                // Sinon, on essaie de remplir avec les valeurs reçues
+                if (freq.isNotBlank()) {
+                    val index = (spinnerFrequence.adapter as ArrayAdapter<String>).getPosition(freq)
+                    if (index >= 0) spinnerFrequence.setSelection(index)
+                }
+
+                if (momentsString.isNotBlank()) {
+                    momentsDetectes = momentsString.split(",").map { it.trim() }
+                    val defaultMoment = momentsDetectes.firstOrNull()
+                    if (defaultMoment != null) {
+                        val index = (spinnerMoment.adapter as ArrayAdapter<String>).getPosition(defaultMoment)
+                        if (index >= 0) spinnerMoment.setSelection(index)
+                    }
                 }
             }
 
+            // Affichage forme détectée etc. comme avant
             if (forme.isNotBlank()) {
                 tvForme.text = "Forme détectée : $forme"
-
                 val objFile = when (forme.lowercase(Locale.FRENCH)) {
                     "triangle" -> "triangle.obj"
-                    "rectangle" -> "rectangle.obj"
-                    "cercle" -> "cercle.obj"
+                    "rectangle", "carré" -> "rectangle.obj"
+                    "cercle", "rond" -> "cercle.obj"
                     else -> null
                 }
-
                 if (objFile != null) {
                     val intent = Intent(this, ModelViewerActivity::class.java)
                     intent.putExtra("OBJ_FILE", objFile)
